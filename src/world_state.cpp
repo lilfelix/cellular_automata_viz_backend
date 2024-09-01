@@ -34,12 +34,12 @@ Grid3D update_world_state(const Grid3D &current_world_state, const Bitset128 &ru
     // Create a new grid for the next state. This is a deep copy of the current world state.
     Grid3D next_world_state = current_world_state;
 
-    // Iterate over the internal cells, avoiding the boundaries
-    for (size_t x = 1; x < x_max - 1; ++x)
+    // Iterate over all cells including boundaries
+    for (size_t x = 0; x < x_max; ++x)
     {
-        for (size_t y = 1; y < y_max - 1; ++y)
+        for (size_t y = 0; y < y_max; ++y)
         {
-            for (size_t z = 1; z < z_max - 1; ++z)
+            for (size_t z = 0; z < z_max; ++z)
             {
                 uint8_t central_bit = current_world_state[x][y][z];
                 // Get the neighbors, handling boundary conditions with modulo

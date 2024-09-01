@@ -35,7 +35,7 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
 
 # Compile source files with debug symbols
 $(BUILD_DIR)/%.debug.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) -O0 -g $(CPPFLAGS) -I$(INCLUDE_DIR) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -Wno-unused-variable -O0 -g $(CPPFLAGS) -I$(INCLUDE_DIR) -c $< -o $@
 
 # Create build directories if not exist
 $(BUILD_DIR) $(BIN_DIR):

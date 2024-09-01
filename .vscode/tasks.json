@@ -9,7 +9,16 @@
                 "isDefault": true
             },
             "problemMatcher": ["$gcc"],
-            "detail": "Custom task to build clean and run the selected binary."
+            "detail": "Custom task to build clean and run the selected binary.",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            }
+    
         }
     ],
     "version": "2.0.0"
