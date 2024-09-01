@@ -27,7 +27,6 @@ using ConfigMap = std::unordered_map<std::tuple<uint8_t, uint8_t, uint8_t>, bool
 
 // Function declarations
 Bitset128 generate_random_bitset128();
-void print_bitset128(const Bitset128& bitset);
 ConfigMap generate_3d_mapping(const Bitset128& rule);
 
 int test();
