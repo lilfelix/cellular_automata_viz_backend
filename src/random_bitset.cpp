@@ -21,11 +21,10 @@ bool does_cell_live(const Bitset128 &rule, uint8_t central_bit, uint8_t x, uint8
     uint8_t combined_configuration = (central_bit << 6) | (x << 4) | (y << 2) | z;
 
     // Calculate the index in the rule bitset using the combined configuration.
-    uint8_t index_in_rule = combined_configuration % 128;
+    std::size_t index_in_rule = static_cast<std::size_t>(combined_configuration);
 
     // Return true if the bit at index_in_rule is set (i.e., the cell lives).
     // Otherwise, return false (i.e., the cell dies).
-    // std::cout<< std::to_string(combined_configuration);
     return rule[index_in_rule];
 }
 
