@@ -11,9 +11,9 @@ These are the parts needed to build a 3D cellular automata!
 
 - install the dependencies via Conan: `conan install . --output-folder=conan --build=missing`
 - run CMake to generate the build system 
-    - `cmake -DCMAKE_BUILD_TYPE=Release -B build -S .`
-    - `cmake -DCMAKE_BUILD_TYPE=Debug -B build -S .`
-- build the project `cmake --build build --parallel`
+    - `cmake -DCMAKE_BUILD_TYPE=Release -B conan -S .`
+    - `cmake -DCMAKE_BUILD_TYPE=Debug -B conan -S .`
+- build the project `cmake --build conan --parallel`
 
 ### Protobuf
 

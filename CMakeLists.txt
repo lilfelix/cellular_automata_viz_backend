@@ -63,10 +63,10 @@ endforeach()
 include_directories(${GENERATED_DIR} ${CMAKE_SOURCE_DIR}/include)
 
 # Add executable target
-add_executable(MyExecutable ${SRCS} ${PROTO_SRCS} ${PROTO_HDRS})
+add_executable(CellularAutomata3D ${SRCS} ${PROTO_SRCS} ${PROTO_HDRS})
 
 # Link libraries
-target_link_libraries(MyExecutable PRIVATE ${CONAN_LIBS})
+target_link_libraries(CellularAutomata3D PRIVATE ${CONAN_LIBS})
 
 # Install target
-install(TARGETS MyExecutable DESTINATION bin)
+install(TARGETS CellularAutomata3D DESTINATION bin)

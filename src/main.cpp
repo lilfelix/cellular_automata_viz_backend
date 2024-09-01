@@ -1,48 +1,168 @@
 #include <iostream>
-#include <bitset>
-#include <array>
-#include "random_bitset.hpp"
+#include <memory>
+#include <string>
+#include <vector>
+
+#include <grpcpp/grpcpp.h>
+#include "server.grpc.pb.h"
 #include "world_state.hpp"
 
+using grpc::Server;
+using grpc::ServerBuilder;
+using grpc::ServerContext;
+using grpc::Status;
+using server::Data;
+using server::DataService;
+using server::Metadata;
+using server::RequestMessage;
+using server::ResponseMessage;
+using server::Vector2D;
+using server::Vector3D;
 
-
-// Ticker function to move time forward, updating the world state at each step
-Grid3D run_simulation(Grid3D &world_state, const Bitset128 &rule, size_t steps)
+class DataServiceImpl final : public DataService::Service
 {
-    for (size_t step = 0; step < steps; ++step)
+public:
+    Status GetData(ServerContext *context, const RequestMessage *request,
+                   ResponseMessage *reply) override
     {
-        world_state = update_world_state(world_state, rule);
-        // if ((step % (steps / 10)) == 0)
-        // {
-        //     std::cout << "Completed step " << step << " of " << steps << std::endl;
-        // }
-        print_slices(world_state);
+        // Log received metadata for debugging
+        std::cout << "Received request with step: " << request->metadata().step()
+                  << " and status: " << request->metadata().status() << std::endl;
+
+        // Fill the response metadata
+        Metadata *response_metadata = reply->mutable_metadata();
+        response_metadata->set_step(request->metadata().step());
+        response_metadata->set_status("Processed " + request->metadata().status());
+
+        // Assume we are generating or receiving the Grid3D data to be serialized
+        size_t x_max = 10; // Example size, you can get this dynamically or from the request
+        size_t y_max = 10;
+        size_t z_max = 10;
+
+        // Generate the Grid3D data (or use the request data)
+        Grid3D grid = generate_initial_world_state(x_max, y_max, z_max);
+
+        // Serialize the Grid3D data into the response protobuf
+        Data *response_data = reply->mutable_data();
+        processVector(grid, response_data);
+
+        return Status::OK;
     }
-    return world_state;
+
+    Status initializeWorldState(ServerContext *context, const server::InitializeRequest *request,
+                                server::WorldStateResponse *reply) override
+    {
+        size_t x_max = request->dimensions().x_max();
+        size_t y_max = request->dimensions().y_max();
+        size_t z_max = request->dimensions().z_max();
+
+        // Generate the initial world state
+        Grid3D world_state = generate_initial_world_state(x_max, y_max, z_max);
+
+        // Serialize the generated world state into the response
+        processVector(world_state, reply->mutable_data());
+
+        // Set up the metadata
+        server::Metadata *metadata = reply->mutable_metadata();
+        metadata->set_step(0);
+        metadata->set_status("World state initialized");
+
+        return Status::OK;
+    }
+
+    Status stepWorldStateForward(ServerContext *context, const server::StepRequest *request,
+                                 server::WorldStateResponse *reply) override
+    {
+        size_t x_max = request->dimensions().x_max();
+        size_t y_max = request->dimensions().y_max();
+        size_t z_max = request->dimensions().z_max();
+
+        // Deserialize the rule
+        Bitset128 rule;
+        std::memcpy(&rule, request->rule().data(), sizeof(Bitset128));
+
+        // Get the current world state
+        Grid3D current_world_state = get_current_world_state(x_max, y_max, z_max);
+
+        // Step the world state forward
+        Grid3D updated_world_state = update_world_state(current_world_state, rule);
+
+        // Serialize the updated world state into the response
+        processVector(updated_world_state, reply->mutable_data());
+
+        // Set up the metadata
+        server::Metadata *metadata = reply->mutable_metadata();
+        metadata->set_step(get_current_step() + 1); // Increment step count
+        metadata->set_status("World state stepped forward");
+
+        // Optionally save the updated world state for future steps
+        save_current_world_state(updated_world_state);
+
+        return Status::OK;
+    }
+
+private:
+    // This is a placeholder; you need to implement this to get the current world state.
+    Grid3D get_current_world_state(size_t x_max, size_t y_max, size_t z_max)
+    {
+        // Retrieve the current world state from a stored location, e.g., a class member or a database
+        // For this example, we'll just return a fresh state
+        return generate_initial_world_state(x_max, y_max, z_max);
+    }
+
+    // Placeholder for saving the current world state after a step.
+    void save_current_world_state(const Grid3D &state)
+    {
+        // Store the state for future steps
+    }
+
+    // Placeholder to keep track of the current step
+    size_t get_current_step() const
+    {
+        return current_step_;
+    }
+
+    void set_current_step(size_t step)
+    {
+        current_step_ = step;
+    }
+
+    size_t current_step_ = 0; // Start at step 0
+
+    // This function serializes a Grid3D into the provided Data protobuf message.
+    void processVector(const Grid3D &grid, server::Data *data_proto)
+    {
+        for (const auto &grid2d : grid)
+        {
+            server::Vector3D *vec3d_proto = data_proto->add_data(); // Add a new Vector3D to the Data message
+            for (const auto &grid1d : grid2d)
+            {
+                server::Vector2D *vec2d_proto = vec3d_proto->add_vec2d();   // Add a new Vector2D to the current Vector3D
+                std::string vec1d_serialized(grid1d.begin(), grid1d.end()); // Convert the 1D vector of uint8_t to a string (byte array)
+                vec2d_proto->add_vec1d(vec1d_serialized);                   // Add the serialized string to the Vector2D
+            }
+        }
+    }
+
+    void RunServer()
+        std::string server_address("0.0.0.0:50051");
+    DataServiceImpl service;
+
+    ServerBuilder builder;
+    builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+    builder.RegisterService(&service);
+    std::unique_ptr<Server> server(builder.BuildAndStart());
+    std::cout << "Server listening on " << server_address << std::endl;
+
+    server->Wait();
+
+    return 0;
 }
 
-int old_main()
+int
+main(int argc, char **argv)
 {
-    // Parameters for the simulation
-    size_t x_max = 3, y_max = 3, z_max = 3;
-    size_t steps = 100;
-
-    // Generate a random rule
-    Bitset128 rule = generate_random_bitset128();
-
-    std::cout << "Random 128-bit Bitset:\n"
-              << rule << std::endl;
-
-    // Generate the initial world state
-    Grid3D world_state = generate_initial_world_state(x_max, y_max, z_max);
-    print_slices(world_state);
-
-    // Run the simulation
-    auto final_world_state = run_simulation(world_state, rule, steps);
-
-    std::cout << "Comparison with initial world state:\n"
-              << std::endl;
-    print_slices(final_world_state);
+    RunServer();
 
     return 0;
 }
