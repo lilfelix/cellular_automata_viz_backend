@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(MyProject VERSION 1.0 LANGUAGES CXX)
+project(CellularAutomata3D VERSION 1.0 LANGUAGES CXX)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -11,10 +11,15 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-# Include Conan-generated files for dependencies
+# Include Conan-generated toolchain file for dependencies
 include(${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup()
+
+# Find the grpc_cpp_plugin executable
+find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin)
+
+if(NOT GRPC_CPP_PLUGIN)
+    message(FATAL_ERROR "grpc_cpp_plugin not found. Ensure gRPC is installed correctly.")
+endif()
 
 # Proto files directory
 set(PROTO_DIR ${CMAKE_SOURCE_DIR}/proto)
@@ -35,7 +40,7 @@ foreach(PROTO_FILE ${PROTO_FILES})
         OUTPUT ${GRPC_SRC} ${GRPC_HDR} ${GRPC_GRPC_SRC} ${GRPC_GRPC_HDR}
         COMMAND protobuf::protoc
         ARGS --grpc_out=${CMAKE_BINARY_DIR}/generated --cpp_out=${CMAKE_BINARY_DIR}/generated
-             --plugin=protoc-gen-grpc=$<TARGET_FILE:grpc_cpp_plugin> -I${PROTO_DIR} ${PROTO_FILE}
+             --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} -I${PROTO_DIR} ${PROTO_FILE}
         DEPENDS ${PROTO_FILE}
         COMMENT "Running gRPC C++ code generation on ${PROTO_FILE}"
     )

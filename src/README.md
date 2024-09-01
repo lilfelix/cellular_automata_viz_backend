@@ -18,8 +18,8 @@ These are the parts needed to build a 3D cellular automata!
 ### Protobuf
 
 ```bash
-protoc -I=. --grpc_out=. --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` grpcdemo.proto
-protoc -I=. --cpp_out=. grpcdemo.proto
+protoc -I=. --grpc_out=. --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` server.proto
+protoc -I=. --cpp_out=. server.proto
 ```
 
 ### Conan

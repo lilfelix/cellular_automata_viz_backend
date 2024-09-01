@@ -4,6 +4,8 @@
 #include "random_bitset.hpp"
 #include "world_state.hpp"
 
+
+
 // Ticker function to move time forward, updating the world state at each step
 Grid3D run_simulation(Grid3D &world_state, const Bitset128 &rule, size_t steps)
 {
@@ -19,7 +21,7 @@ Grid3D run_simulation(Grid3D &world_state, const Bitset128 &rule, size_t steps)
     return world_state;
 }
 
-int main()
+int old_main()
 {
     // Parameters for the simulation
     size_t x_max = 3, y_max = 3, z_max = 3;

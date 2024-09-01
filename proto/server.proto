@@ -34,6 +34,31 @@ message RequestMessage {
   Data data = 2;
 }
 
+message GridDimensions {
+  int64 x_max = 1;
+  int64 y_max = 2;
+  int64 z_max = 3;
+}
+
+message InitializeRequest {
+  GridDimensions dimensions = 1;
+}
+
+message StepRequest {
+  GridDimensions dimensions = 1;
+  bytes rule = 2; // 128-bit rule as a byte array
+}
+
+message WorldStateResponse {
+  Metadata metadata = 1;
+  Data data = 2;
+}
+
+service DataService {
+  rpc initializeWorldState(InitializeRequest) returns (WorldStateResponse);
+  rpc stepWorldStateForward(StepRequest) returns (WorldStateResponse);
+}
+
 // Service definition.
 service DataService {
   rpc GetData(RequestMessage) returns (ResponseMessage);
