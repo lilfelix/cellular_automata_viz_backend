@@ -61,8 +61,9 @@ void generate_3d_mapping(uint8_t rule) {
 
 int main() {
 
-    Bitset128 random_bitset = generate_random_bitset128();
-    print_bitset128(random_bitset);
+    test();
+    // Bitset128 random_bitset = generate_random_bitset128();
+    // print_bitset128(random_bitset);
 
     // uint8_t rule;  // Example rule, analogous to 1D Rule 30
     // std::cin >> rule;
