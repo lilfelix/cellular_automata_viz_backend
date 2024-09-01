@@ -9,13 +9,14 @@ These are the parts needed to build a 3D cellular automata!
 
 ### Quick start
 
-- install the dependencies via Conan: `conan install . --output-folder=conan --build=missing`
+- install the dependencies via Conan: `conan install . --build=missing`
 - run CMake to generate the build system 
     - `cmake -DCMAKE_BUILD_TYPE=Release -B conan -S .`
     - `cmake -DCMAKE_BUILD_TYPE=Debug -B conan -S .`
 - build the project `cmake --build conan --parallel`
 
 ### Protobuf
+[Version support](https://protobuf.dev/support/version-support/)
 
 ```bash
 protoc -I=. --grpc_out=. --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` sim_server.proto
@@ -25,7 +26,7 @@ protoc -I=. --cpp_out=. sim_server.proto
 ### Conan
 
 ```bash
-conan install . --output-folder=conan --build=missing
+conan install . --build=missing
 ```
 
 conanfile.txt is a configuration file used by Conan, a C++ package manager. It specifies the external dependencies your project needs, such as third-party libraries (e.g., gRPC, Boost, OpenSSL).

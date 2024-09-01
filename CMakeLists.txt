@@ -1,41 +1,26 @@
 cmake_minimum_required(VERSION 3.15)
 project(CellularAutomata3D VERSION 1.0 LANGUAGES CXX)
 
-
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+# set(CMAKE_OSX_ARCHITECTURES "arm64")
 
 # Set the output directories for built targets
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-
-# Include Conan-generated toolchain file for dependencies
-include(${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
-
-# Find the protoc and grpc_cpp_plugin executables
-find_program(PROTOC_EXECUTABLE protoc)
-find_program(GRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin)
-
-if(NOT PROTOC_EXECUTABLE)
-    message(FATAL_ERROR "protoc not found. Ensure Protobuf is installed correctly.")
-endif()
-
-if(NOT GRPC_CPP_PLUGIN_EXECUTABLE)
-    message(FATAL_ERROR "grpc_cpp_plugin not found. Ensure gRPC is installed correctly.")
-endif()
-
-# Proto files directory
-set(PROTO_DIR ${CMAKE_SOURCE_DIR}/proto)
-set(GENERATED_DIR ${CMAKE_BINARY_DIR}/generated)
 
 # Source files
 file(GLOB_RECURSE SRCS ${CMAKE_SOURCE_DIR}/src/*.cpp)
-file(GLOB_RECURSE PROTO_FILES ${PROTO_DIR}/*.proto)
+file(GLOB_RECURSE PROTO_FILES ${CMAKE_SOURCE_DIR}/proto/*.proto)
 
-# Make sure the generated directory exists
+# Ensure source files are found
+if(NOT SRCS)
+    message(FATAL_ERROR "No source files found in src directory.")
+endif()
+
+# Proto files directory
+set(GENERATED_DIR ${CMAKE_BINARY_DIR}/generated)
 file(MAKE_DIRECTORY ${GENERATED_DIR})
 
 # Generate gRPC and Protobuf sources
@@ -49,24 +34,28 @@ foreach(PROTO_FILE ${PROTO_FILES})
 
     add_custom_command(
         OUTPUT ${GRPC_SRC} ${GRPC_HDR} ${GRPC_GRPC_SRC} ${GRPC_GRPC_HDR}
-        COMMAND ${PROTOC_EXECUTABLE}
+        COMMAND protoc
         ARGS --grpc_out=${GENERATED_DIR} --cpp_out=${GENERATED_DIR}
-             --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN_EXECUTABLE} -I${PROTO_DIR} ${PROTO_FILE}
+             --plugin=protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin -I${CMAKE_SOURCE_DIR}/proto ${PROTO_FILE}
         DEPENDS ${PROTO_FILE}
         COMMENT "Running gRPC C++ code generation on ${PROTO_FILE}"
     )
 
-    list(APPEND PROTO_SRCS ${GRPC_SRC} ${GRPC_GRPC_SRC})
-    list(APPEND PROTO_HDRS ${GRPC_HDR} ${GRPC_GRPC_HDR})
+    list(APPEND SRCS ${GRPC_SRC} ${GRPC_GRPC_SRC})
 endforeach()
 
-# Add include directories
-include_directories(${GENERATED_DIR} ${CMAKE_SOURCE_DIR}/include)
+# Add include directories for generated files and Conan packages
+include_directories(${GENERATED_DIR})
+include_directories(${CMAKE_BINARY_DIR}/conan/include)
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+# Add /usr/local/include for Protobuf and gRPC headers
+include_directories(/usr/local/include)
 
 # Add executable target
-add_executable(CellularAutomata3D ${SRCS} ${PROTO_SRCS} ${PROTO_HDRS})
+add_executable(CellularAutomata3D ${SRCS})
 
-# Link libraries
+# Link libraries provided by Conan
 target_link_libraries(CellularAutomata3D PRIVATE ${CONAN_LIBS})
 
 # Install target
