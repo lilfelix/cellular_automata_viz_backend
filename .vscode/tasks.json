@@ -1,6 +1,17 @@
 {
     "tasks": [
         {
+            "label": "Build Clean and Run",
+            "type": "shell",
+            "command": "make clean && make && ./bin/main",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$gcc"],
+            "detail": "Custom task to build clean and run the selected binary."
+        },
+        {
             "type": "cppbuild",
             "label": "C/C++: clang++ build active file",
             "command": "/usr/bin/clang++",

@@ -48,18 +48,22 @@ Grid3D update_world_state(const Grid3D &current_world_state, const ConfigMap &ru
     return next_world_state;
 }
 
-// Function to print the XY slices of the 3D grid for each Z value
+// Function to print the XY slices of the 3D grid for each Z value in a compact format
 void print_slices(const Grid3D &world_state) {
+    size_t x_max = world_state.size();
+    size_t y_max = world_state[0].size();
     size_t z_max = world_state[0][0].size();
-    
-    for (size_t z = 0; z < z_max; ++z) {
-        std::cout << "Slice at Z = " << z << ":\n";
-        for (const auto& row : world_state) {
-            for (const auto& cell : row) {
-                std::cout << static_cast<int>(cell[z]) << " ";
+
+    for (size_t y = 0; y < y_max; ++y) {
+        for (size_t z = 0; z < z_max; ++z) {
+            for (size_t x = 0; x < x_max; ++x) {
+                std::cout << static_cast<int>(world_state[x][y][z]) << " ";
             }
-            std::cout << "\n";
+            if (z < z_max - 1) {
+                std::cout << ",\t";  // Separate slices horizontally with a comma and tab
+            }
         }
-        std::cout << "\n"; // Separate slices for clarity
+        std::cout << "\n";  // Move to the next row of the XY plane
     }
+    std::cout << std::endl;  // Final newline for clarity
 }

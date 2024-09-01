@@ -19,7 +19,7 @@ int main()
 {
     // Parameters for the simulation
     size_t x_max = 3, y_max = 3, z_max = 3;
-    size_t steps = 5;
+    size_t steps = 10000;
 
     // Generate a random rule
     Bitset128 rule = generate_random_bitset128();
@@ -32,9 +32,13 @@ int main()
 
     // Generate the initial world state
     Grid3D world_state = generate_initial_world_state(x_max, y_max, z_max);
+    Grid3D saved_initial_world_state = world_state;
 
     // Run the simulation
     run_simulation(world_state, rule_map, steps);
+
+    std::cout << "Comparison with initial world state:\n" << std::endl;
+    print_slices(saved_initial_world_state);
 
     return 0;
 }
