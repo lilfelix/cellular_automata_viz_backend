@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package server;
+package sim_server;
 
 // The top-level message containing metadata and data.
 message ResponseMessage {

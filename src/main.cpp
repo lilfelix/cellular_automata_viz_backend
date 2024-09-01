@@ -4,20 +4,20 @@
 #include <vector>
 
 #include <grpcpp/grpcpp.h>
-#include "server.grpc.pb.h"
+#include "sim_server.grpc.pb.h"
 #include "world_state.hpp"
 
 using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
 using grpc::Status;
-using server::Data;
-using server::DataService;
-using server::Metadata;
-using server::RequestMessage;
-using server::ResponseMessage;
-using server::Vector2D;
-using server::Vector3D;
+using sim_server::Data;
+using sim_server::DataService;
+using sim_server::Metadata;
+using sim_server::RequestMessage;
+using sim_server::ResponseMessage;
+using sim_server::Vector2D;
+using sim_server::Vector3D;
 
 class DataServiceImpl final : public DataService::Service
 {
@@ -49,8 +49,8 @@ public:
         return Status::OK;
     }
 
-    Status initializeWorldState(ServerContext *context, const server::InitializeRequest *request,
-                                server::WorldStateResponse *reply) override
+    Status initializeWorldState(ServerContext *context, const sim_server::InitializeRequest *request,
+                                sim_server::WorldStateResponse *reply) override
     {
         size_t x_max = request->dimensions().x_max();
         size_t y_max = request->dimensions().y_max();
@@ -63,15 +63,15 @@ public:
         processVector(world_state, reply->mutable_data());
 
         // Set up the metadata
-        server::Metadata *metadata = reply->mutable_metadata();
+        sim_server::Metadata *metadata = reply->mutable_metadata();
         metadata->set_step(0);
         metadata->set_status("World state initialized");
 
         return Status::OK;
     }
 
-    Status stepWorldStateForward(ServerContext *context, const server::StepRequest *request,
-                                 server::WorldStateResponse *reply) override
+    Status stepWorldStateForward(ServerContext *context, const sim_server::StepRequest *request,
+                                 sim_server::WorldStateResponse *reply) override
     {
         size_t x_max = request->dimensions().x_max();
         size_t y_max = request->dimensions().y_max();
@@ -91,7 +91,7 @@ public:
         processVector(updated_world_state, reply->mutable_data());
 
         // Set up the metadata
-        server::Metadata *metadata = reply->mutable_metadata();
+        sim_server::Metadata *metadata = reply->mutable_metadata();
         metadata->set_step(get_current_step() + 1); // Increment step count
         metadata->set_status("World state stepped forward");
 
@@ -130,39 +130,38 @@ private:
     size_t current_step_ = 0; // Start at step 0
 
     // This function serializes a Grid3D into the provided Data protobuf message.
-    void processVector(const Grid3D &grid, server::Data *data_proto)
+    void processVector(const Grid3D &grid, sim_server::Data *data_proto)
     {
         for (const auto &grid2d : grid)
         {
-            server::Vector3D *vec3d_proto = data_proto->add_data(); // Add a new Vector3D to the Data message
+            sim_server::Vector3D *vec3d_proto = data_proto->add_data(); // Add a new Vector3D to the Data message
             for (const auto &grid1d : grid2d)
             {
-                server::Vector2D *vec2d_proto = vec3d_proto->add_vec2d();   // Add a new Vector2D to the current Vector3D
-                std::string vec1d_serialized(grid1d.begin(), grid1d.end()); // Convert the 1D vector of uint8_t to a string (byte array)
-                vec2d_proto->add_vec1d(vec1d_serialized);                   // Add the serialized string to the Vector2D
+                sim_server::Vector2D *vec2d_proto = vec3d_proto->add_vec2d(); // Add a new Vector2D to the current Vector3D
+                std::string vec1d_serialized(grid1d.begin(), grid1d.end());   // Convert the 1D vector of uint8_t to a string (byte array)
+                vec2d_proto->add_vec1d(vec1d_serialized);                     // Add the serialized string to the Vector2D
             }
         }
     }
 
     void RunServer()
+    {
         std::string server_address("0.0.0.0:50051");
-    DataServiceImpl service;
+        DataServiceImpl service;
 
-    ServerBuilder builder;
-    builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
-    builder.RegisterService(&service);
-    std::unique_ptr<Server> server(builder.BuildAndStart());
-    std::cout << "Server listening on " << server_address << std::endl;
+        ServerBuilder builder;
+        builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+        builder.RegisterService(&service);
+        std::unique_ptr<Server> sim_server(builder.BuildAndStart());
+        std::cout << "Server listening on " << server_address << std::endl;
 
-    server->Wait();
+        sim_server->Wait();
+    }
 
-    return 0;
-}
+    int main(int argc, char **argv)
+    {
+        RunServer();
 
-int
-main(int argc, char **argv)
-{
-    RunServer();
-
-    return 0;
-}
+        return 0;
+    }
+};
