@@ -6,8 +6,8 @@
 #include <tuple>
 #include <cstdint> // fixed-width integer types like uint8_t and uint64_t,
 
-// Define a 128-bit bitset
 using Bitset128 = std::bitset<128>;
+using ConfigMap = std::unordered_map<std::tuple<uint8_t, uint8_t, uint8_t>, bool>;
 
 // Custom hash function for std::tuple<uint8_t, uint8_t, uint8_t>
 namespace std
@@ -25,7 +25,6 @@ namespace std
     };
 }
 
-using ConfigMap = std::unordered_map<std::tuple<uint8_t, uint8_t, uint8_t>, bool>;
 
 // Function declarations
 Bitset128 generate_random_bitset128();
