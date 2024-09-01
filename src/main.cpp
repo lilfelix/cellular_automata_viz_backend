@@ -10,10 +10,11 @@ Grid3D run_simulation(Grid3D &world_state, const Bitset128 &rule, size_t steps)
     for (size_t step = 0; step < steps; ++step)
     {
         world_state = update_world_state(world_state, rule);
-        if ((step % (steps / 10)) == 0)
-        {
-            std::cout << "Completed step " << step << " of " << steps << std::endl;
-        }
+        // if ((step % (steps / 10)) == 0)
+        // {
+        //     std::cout << "Completed step " << step << " of " << steps << std::endl;
+        // }
+        print_slices(world_state);
     }
     return world_state;
 }
@@ -22,7 +23,7 @@ int main()
 {
     // Parameters for the simulation
     size_t x_max = 3, y_max = 3, z_max = 3;
-    size_t steps = 100000;
+    size_t steps = 100;
 
     // Generate a random rule
     Bitset128 rule = generate_random_bitset128();

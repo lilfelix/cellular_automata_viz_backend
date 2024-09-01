@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package grpcdemo;
+
+// The top-level message containing metadata and data.
+message ResponseMessage {
+  Metadata metadata = 1;
+  Data data = 2;
+}
+
+// Metadata sub-message.
+message Metadata {
+  int64 step = 1;
+  string status = 2;
+}
+
+// Data sub-message.
+message Data {
+  repeated Vector3D data = 1;
+}
+
+// 3D Vector of uint8_t values.
+message Vector3D {
+  repeated Vector2D vec2d = 1;
+}
+
+message Vector2D {
+  repeated bytes vec1d = 1;
+}
+
+// The request message format, which mirrors the response.
+message RequestMessage {
+  Metadata metadata = 1;
+  Data data = 2;
+}
+
+// Service definition.
+service DataService {
+  rpc GetData(RequestMessage) returns (ResponseMessage);
+}
