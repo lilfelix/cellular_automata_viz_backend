@@ -52,7 +52,7 @@
     "makefile.launchConfigurations": [
         {
             "cwd": "/Users/felix/Code/cell_automata_project/bin",
-            "binaryPath": "/Users/felix/Code/cell_automata_project/bin/main",
+            "binaryPath": "/Users/felix/Code/cell_automata_project/bin/main_debug",
             "binaryArgs": []
         }
     ]

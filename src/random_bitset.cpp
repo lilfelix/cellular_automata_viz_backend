@@ -25,13 +25,13 @@ bool does_cell_live(const Bitset128 &rule, uint8_t central_bit, uint8_t x, uint8
 
     // Return true if the bit at index_in_rule is set (i.e., the cell lives).
     // Otherwise, return false (i.e., the cell dies).
+    // std::cout<< std::to_string(combined_configuration);
     return rule[index_in_rule];
 }
 
 // Function to generate and return the 3D mapping based on the given rule
-ConfigMap generate_3d_mapping(const Bitset128 &rule)
+void print_3d_mapping(const Bitset128 &rule)
 {
-    ConfigMap result_map;
     int bit_index = 0;
 
     for (uint8_t central_bit : {0, 1})
@@ -43,15 +43,12 @@ ConfigMap generate_3d_mapping(const Bitset128 &rule)
                 for (uint8_t z : VALID_BIT_MAPS)
                 {
                     bool cell_lives = does_cell_live(rule, central_bit, x, y, z);
-                    result_map[{x, y, z}] = cell_lives;
                     std::cout << "Generating 3D Moore neighborhood. Bit index "
                               << bit_index++ << " : " << (cell_lives ? "Lives" : "Dies") << std::endl;
                 }
             }
         }
     }
-
-    return result_map;
 }
 
 // Function to generate a random 128-bit bitset
