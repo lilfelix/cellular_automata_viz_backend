@@ -14,33 +14,43 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # Include Conan-generated toolchain file for dependencies
 include(${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
 
-# Find the grpc_cpp_plugin executable
-find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin)
+# Find the protoc and grpc_cpp_plugin executables
+find_program(PROTOC_EXECUTABLE protoc)
+find_program(GRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin)
 
-if(NOT GRPC_CPP_PLUGIN)
+if(NOT PROTOC_EXECUTABLE)
+    message(FATAL_ERROR "protoc not found. Ensure Protobuf is installed correctly.")
+endif()
+
+if(NOT GRPC_CPP_PLUGIN_EXECUTABLE)
     message(FATAL_ERROR "grpc_cpp_plugin not found. Ensure gRPC is installed correctly.")
 endif()
 
 # Proto files directory
 set(PROTO_DIR ${CMAKE_SOURCE_DIR}/proto)
+set(GENERATED_DIR ${CMAKE_BINARY_DIR}/generated)
 
 # Source files
 file(GLOB_RECURSE SRCS ${CMAKE_SOURCE_DIR}/src/*.cpp)
 file(GLOB_RECURSE PROTO_FILES ${PROTO_DIR}/*.proto)
 
+# Make sure the generated directory exists
+file(MAKE_DIRECTORY ${GENERATED_DIR})
+
 # Generate gRPC and Protobuf sources
 foreach(PROTO_FILE ${PROTO_FILES})
     get_filename_component(PROTO_NAME ${PROTO_FILE} NAME_WE)
-    set(GRPC_SRC ${CMAKE_BINARY_DIR}/generated/${PROTO_NAME}.pb.cc)
-    set(GRPC_HDR ${CMAKE_BINARY_DIR}/generated/${PROTO_NAME}.pb.h)
-    set(GRPC_GRPC_SRC ${CMAKE_BINARY_DIR}/generated/${PROTO_NAME}.grpc.pb.cc)
-    set(GRPC_GRPC_HDR ${CMAKE_BINARY_DIR}/generated/${PROTO_NAME}.grpc.pb.h)
+    
+    set(GRPC_SRC ${GENERATED_DIR}/${PROTO_NAME}.pb.cc)
+    set(GRPC_HDR ${GENERATED_DIR}/${PROTO_NAME}.pb.h)
+    set(GRPC_GRPC_SRC ${GENERATED_DIR}/${PROTO_NAME}.grpc.pb.cc)
+    set(GRPC_GRPC_HDR ${GENERATED_DIR}/${PROTO_NAME}.grpc.pb.h)
 
     add_custom_command(
         OUTPUT ${GRPC_SRC} ${GRPC_HDR} ${GRPC_GRPC_SRC} ${GRPC_GRPC_HDR}
-        COMMAND protobuf::protoc
-        ARGS --grpc_out=${CMAKE_BINARY_DIR}/generated --cpp_out=${CMAKE_BINARY_DIR}/generated
-             --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} -I${PROTO_DIR} ${PROTO_FILE}
+        COMMAND ${PROTOC_EXECUTABLE}
+        ARGS --grpc_out=${GENERATED_DIR} --cpp_out=${GENERATED_DIR}
+             --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN_EXECUTABLE} -I${PROTO_DIR} ${PROTO_FILE}
         DEPENDS ${PROTO_FILE}
         COMMENT "Running gRPC C++ code generation on ${PROTO_FILE}"
     )
@@ -50,7 +60,7 @@ foreach(PROTO_FILE ${PROTO_FILES})
 endforeach()
 
 # Add include directories
-include_directories(${CMAKE_BINARY_DIR}/generated ${CMAKE_SOURCE_DIR}/include)
+include_directories(${GENERATED_DIR} ${CMAKE_SOURCE_DIR}/include)
 
 # Add executable target
 add_executable(MyExecutable ${SRCS} ${PROTO_SRCS} ${PROTO_HDRS})

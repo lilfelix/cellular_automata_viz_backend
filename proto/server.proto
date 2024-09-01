@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package grpcdemo;
+package server;
 
 // The top-level message containing metadata and data.
 message ResponseMessage {
@@ -54,12 +54,9 @@ message WorldStateResponse {
   Data data = 2;
 }
 
+// Service definition.
 service DataService {
   rpc initializeWorldState(InitializeRequest) returns (WorldStateResponse);
   rpc stepWorldStateForward(StepRequest) returns (WorldStateResponse);
-}
-
-// Service definition.
-service DataService {
   rpc GetData(RequestMessage) returns (ResponseMessage);
 }
