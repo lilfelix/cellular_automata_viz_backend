@@ -9,6 +9,9 @@ These are the parts needed to build a 3D cellular automata!
 
 ### Quick start
 
+- initialize grpc git submodule (built from source)
+    - `git clone --recurse-submodules https://github.com/lilfelix/cell_automata_project.git`
+    - Or if the repo is already cloned: `git submodule update --init --recursive`
 - install the dependencies via Conan: `conan install . --build=missing`
 - run CMake to generate the build system 
     - `cmake -DCMAKE_BUILD_TYPE=Release -B conan -S .`

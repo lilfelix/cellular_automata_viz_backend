@@ -1,12 +1,17 @@
 cmake_minimum_required(VERSION 3.15)
 project(CellularAutomata3D VERSION 1.0 LANGUAGES CXX)
 
+# https://github.com/protocolbuffers/protobuf/issues/12185#issuecomment-1594685860
+set(ABSL_ENABLE_INSTALL ON)
+
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Set the architecture for Apple Silicon
 set(CMAKE_OSX_ARCHITECTURES "arm64")  # or "x86_64", or "arm64;x86_64" for universal
 
+# Add the gRPC submodule to CMake build
+add_subdirectory(external/grpc)
 
 # Set the output directories for built targets
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -51,14 +56,14 @@ include_directories(${GENERATED_DIR})
 include_directories(${CMAKE_BINARY_DIR}/conan/include)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-# Add /usr/local/include for Protobuf and gRPC headers
-include_directories(/usr/local/include)
-
 # Add executable target
 add_executable(CellularAutomata3D ${SRCS})
 
 # Link libraries provided by Conan
 target_link_libraries(CellularAutomata3D PRIVATE ${CONAN_LIBS})
+
+# Link gRPC lib built from source
+target_link_libraries(CellularAutomata3D PRIVATE grpc++)
 
 # Install target
 install(TARGETS CellularAutomata3D DESTINATION bin)
