@@ -4,7 +4,9 @@ project(CellularAutomata3D VERSION 1.0 LANGUAGES CXX)
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# set(CMAKE_OSX_ARCHITECTURES "arm64")
+# Set the architecture for Apple Silicon
+set(CMAKE_OSX_ARCHITECTURES "arm64")  # or "x86_64", or "arm64;x86_64" for universal
+
 
 # Set the output directories for built targets
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
