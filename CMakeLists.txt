@@ -30,6 +30,16 @@ endif()
 set(GENERATED_DIR ${CMAKE_BINARY_DIR}/generated)
 file(MAKE_DIRECTORY ${GENERATED_DIR})
 
+# Find the grpc_cpp_plugin executable
+set(_GRPC_CPP_PLUGIN_EXECUTABLE "${CMAKE_SOURCE_DIR}/external/grpc/cmake/build/grpc_cpp_plugin")
+
+# Ensure the executable is found
+if(NOT EXISTS ${_GRPC_CPP_PLUGIN_EXECUTABLE})
+    message(FATAL_ERROR "grpc_cpp_plugin not found: ${_GRPC_CPP_PLUGIN_EXECUTABLE}")
+else()
+    message(STATUS "Using grpc_cpp_plugin at: ${_GRPC_CPP_PLUGIN_EXECUTABLE}")
+endif()
+
 # Generate gRPC and Protobuf sources
 foreach(PROTO_FILE ${PROTO_FILES})
     get_filename_component(PROTO_NAME ${PROTO_FILE} NAME_WE)
@@ -43,7 +53,7 @@ foreach(PROTO_FILE ${PROTO_FILES})
         OUTPUT ${GRPC_SRC} ${GRPC_HDR} ${GRPC_GRPC_SRC} ${GRPC_GRPC_HDR}
         COMMAND protoc
         ARGS --grpc_out=${GENERATED_DIR} --cpp_out=${GENERATED_DIR}
-             --plugin=protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin -I${CMAKE_SOURCE_DIR}/proto ${PROTO_FILE}
+        --plugin=protoc-gen-grpc=${_GRPC_CPP_PLUGIN_EXECUTABLE} -I${CMAKE_SOURCE_DIR}/proto ${PROTO_FILE}
         DEPENDS ${PROTO_FILE}
         COMMENT "Running gRPC C++ code generation on ${PROTO_FILE}"
     )

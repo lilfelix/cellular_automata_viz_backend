@@ -20,6 +20,7 @@ These are the parts needed to build a 3D cellular automata!
 
 ### Protobuf
 [Version support](https://protobuf.dev/support/version-support/)
+[Good blogpost on gRPC with CMake](https://www.f-ax.de/dev/2020/11/08/grpc-plugin-cmake-support.html)
 
 ```bash
 protoc -I=. --grpc_out=. --plugin=protoc-gen-grpc=`which grpc_cpp_plugin` sim_server.proto

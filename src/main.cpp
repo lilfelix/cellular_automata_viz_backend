@@ -1,4 +1,4 @@
-#include "server.cpp"  // Or use the header file if you have one
+#include "server.hpp"  
 
 int main(int argc, char** argv) {
     RunServer();  // Start the gRPC server

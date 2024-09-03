@@ -13,18 +13,11 @@ class CellularAutomata3DConan(ConanFile):
     exports_sources = "src/*", "CMakeLists.txt", "proto/*"
 
     def layout(self):
-        self.folders.build = "conan"
-        self.folders.generators = "conan"
+        self.folders.build = "build"
+        self.folders.generators = "build"
         self.folders.source = "."
 
     def build(self):
         cmake = CMake(self)
         cmake.configure()
         cmake.build()
-
-    def package(self):
-        self.copy("grpc_cpp_plugin", dst="bin", keep_path=False)
-
-    def package_info(self):
-        self.cpp_info.bindirs = ["bin"]
-        self.env_info.PATH.append(self.package_folder)
