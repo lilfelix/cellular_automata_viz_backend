@@ -14,9 +14,14 @@ These are the parts needed to build a 3D cellular automata!
     - Or if the repo is already cloned: `git submodule update --init --recursive`
 - install the dependencies via Conan: `conan install . --build=missing`
 - run CMake to generate the build system 
-    - `cmake -DCMAKE_BUILD_TYPE=Release -B conan -S .`
-    - `cmake -DCMAKE_BUILD_TYPE=Debug -B conan -S .`
-- build the project `cmake --build conan --parallel`
+    - `cmake -DCMAKE_BUILD_TYPE=Release -B build -S .`
+    - `cmake -DCMAKE_BUILD_TYPE=Debug -B build -S .`
+- build the project `cmake --build build --parallel 6`
+
+### grpCurl
+
+`grpcurl -plaintext localhost:50051 list`
+`grpcurl -plaintext localhost:50051 sim_server.DataService/initializeWorldState`
 
 ### Protobuf
 [Version support](https://protobuf.dev/support/version-support/)

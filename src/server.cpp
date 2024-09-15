@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <grpcpp/grpcpp.h>
+#include <grpcpp/ext/proto_server_reflection_plugin.h>
 #include "sim_server.grpc.pb.h"
 #include "world_state.hpp"
 
@@ -154,6 +155,9 @@ void RunServer()
     ServerBuilder builder;
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
     builder.RegisterService(&service);
+
+    // Enable reflection
+    grpc::reflection::InitProtoReflectionServerBuilderPlugin();
 
     std::unique_ptr<Server> server(builder.BuildAndStart());
     std::cout << "Server listening on " << server_address << std::endl;
