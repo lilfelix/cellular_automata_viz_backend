@@ -1,5 +1,5 @@
 from conan import ConanFile
-from conan.tools.cmake import CMake, CMakeToolchain, CMakeDeps
+from conan.tools.cmake import CMake
 
 class CellularAutomata3DConan(ConanFile):
     name = "cellular_automata3d"
