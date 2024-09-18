@@ -2,6 +2,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <cstdint>
 
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
@@ -130,7 +131,9 @@ private:
 
     size_t current_step_ = 0; // Start at step 0
 
-    // This function serializes a Grid3D into the provided Data protobuf message.
+    /**
+     * Serializes a Grid3D into the provided Data protobuf message.
+     */
     void processVector(const Grid3D &grid, sim_server::Data *data_proto)
     {
         for (const auto &grid2d : grid)
@@ -139,8 +142,10 @@ private:
             for (const auto &grid1d : grid2d)
             {
                 sim_server::Vector2D *vec2d_proto = vec3d_proto->add_vec2d(); // Add a new Vector2D to the current Vector3D
-                std::string vec1d_serialized(grid1d.begin(), grid1d.end());   // Convert the 1D vector of uint8_t to a string (byte array)
-                vec2d_proto->add_vec1d(vec1d_serialized);                     // Add the serialized string to the Vector2D
+                for (const auto &value : grid1d)
+                {
+                    vec2d_proto->add_vec1d(static_cast<int32_t>(value)); // Add 0 or 1 as integers
+                }
             }
         }
     }

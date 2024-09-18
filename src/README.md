@@ -12,7 +12,7 @@ These are the parts needed to build a 3D cellular automata!
 - initialize grpc git submodule (built from source)
     - `git clone --recurse-submodules https://github.com/lilfelix/cell_automata_project.git`
     - Or if the repo is already cloned: `git submodule update --init --recursive`
-- install the dependencies via Conan: `conan install . --build=missing`
+- install the dependencies via Conan: `conan install . --build=missing --output-folder=<build or debug>`
 - run CMake to generate the build system 
     - `cmake -DCMAKE_BUILD_TYPE=Release -B build -S .`
     - `cmake -DCMAKE_BUILD_TYPE=Debug -B build -S .`
@@ -21,7 +21,7 @@ These are the parts needed to build a 3D cellular automata!
 ### grpCurl
 
 `grpcurl -plaintext localhost:50051 list`
-`grpcurl -plaintext localhost:50051 sim_server.DataService/initializeWorldState`
+`grpcurl -d '{"dimensions":{"y_max":"10","z_max":"10","x_max":"10"}}' -plaintext localhost:50051 sim_server.DataService/initializeWorldState`
 
 ### Protobuf
 [Version support](https://protobuf.dev/support/version-support/)
