@@ -27,6 +27,12 @@ if(NOT SRCS)
     message(FATAL_ERROR "No source files found in src directory.")
 endif()
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    SET(CMAKE_MAKE_PROGRAM /usr/bin/make FORCE)
+    message(STATUS "Debug mode: Adding debug flags")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")  # No optimization, full debug symbols
+endif()
+
 # Proto files directory
 set(GENERATED_DIR ${CMAKE_BINARY_DIR}/generated)
 file(MAKE_DIRECTORY ${GENERATED_DIR})
