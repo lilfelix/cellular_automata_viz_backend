@@ -59,7 +59,7 @@ public:
         size_t z_max = request->dimensions().z_max();
 
         // Generate the initial world state
-        Grid3D world_state = generate_initial_world_state(x_max, y_max, z_max);
+        Grid3D world_state = states.generate_initial_world_state(x_max, y_max, z_max);
 
         // Serialize the generated world state into the response
         processVector(world_state, reply->mutable_data());
@@ -84,10 +84,10 @@ public:
         std::memcpy(&rule, request->rule().data(), sizeof(Bitset128));
 
         // Get the current world state
-        Grid3D current_world_state = get_current_world_state(x_max, y_max, z_max);
+        Grid3D current_world_state = get_current_world_state(request->world_state_id());
 
         // Step the world state forward
-        Grid3D updated_world_state = update_world_state(current_world_state, rule);
+        Grid3D updated_world_state = states.update_world_state(current_world_state, rule);
 
         // Serialize the updated world state into the response
         processVector(updated_world_state, reply->mutable_data());
@@ -98,24 +98,27 @@ public:
         metadata->set_status("World state stepped forward");
 
         // Optionally save the updated world state for future steps
-        save_current_world_state(updated_world_state);
+        save_current_world_state(request->world_state_id(), updated_world_state);
 
         return Status::OK;
     }
 
 private:
+    
+    WorldStateContainer states; // Automatically initialized via WorldStateContainer's default constructor
     // This is a placeholder; you need to implement this to get the current world state.
-    Grid3D get_current_world_state(size_t x_max, size_t y_max, size_t z_max)
+    Grid3D get_current_world_state(const uint64_t world_state_id)
     {
         // Retrieve the current world state from a stored location, e.g., a class member or a database
-        // For this example, we'll just return a fresh state
-        return generate_initial_world_state(x_max, y_max, z_max);
+        // TODO: error handling
+        return states.world_states.at(world_state_id);
     }
 
     // Placeholder for saving the current world state after a step.
-    void save_current_world_state(const Grid3D &state)
+    void save_current_world_state(const uint64_t world_state_id, const Grid3D &state)
     {
         // Store the state for future steps
+        states.world_states.insert({world_state_id, state});
     }
 
     // Placeholder to keep track of the current step

@@ -45,7 +45,7 @@ message InitializeRequest {
 }
 
 message StepRequest {
-  GridDimensions dimensions = 1;
+  int64 world_state_id = 1;
   bytes rule = 2; // 128-bit rule as a byte array
 }
 

@@ -8,11 +8,11 @@ set(ABSL_ENABLE_INSTALL ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Set the architecture for Apple Silicon
-set(CMAKE_OSX_ARCHITECTURES "arm64")  # or "x86_64", or "arm64;x86_64" for universal
+set(CMAKE_OSX_ARCHITECTURES "arm64")
 set(CMAKE_BUILD_PARALLEL_LEVEL 6) # use "nproc" to check number of cores available
 
-# Add the gRPC submodule to CMake build
-add_subdirectory(external/grpc)
+# Add the gRPC submodule to CMake build. Exclude from default build unless needed
+add_subdirectory(external/grpc EXCLUDE_FROM_ALL)
 
 # Set the output directories for built targets
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -80,10 +80,7 @@ add_executable(CellularAutomata3D ${SRCS})
 target_link_libraries(CellularAutomata3D PRIVATE ${CONAN_LIBS})
 
 # Link gRPC lib built from source
-target_link_libraries(CellularAutomata3D PRIVATE grpc++)
-
-# Link against gRPC::grpc++_reflection
-target_link_libraries(CellularAutomata3D PRIVATE grpc++_reflection)
+target_link_libraries(CellularAutomata3D PRIVATE grpc++ grpc++_reflection)
 
 # Install target
 install(TARGETS CellularAutomata3D DESTINATION bin)
