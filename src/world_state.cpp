@@ -4,7 +4,7 @@
 WorldStateContainer::WorldStateContainer() : next_world_state_id(0), world_states() {}
 
 // Function to generate the initial world state with random values (0 or 1)
-std::tuple<uint64_t, Grid3D> WorldStateContainer::generate_initial_world_state(size_t x_max, size_t y_max, size_t z_max)
+std::tuple<uint64_t, Grid3D> WorldStateContainer::InitWorldState(size_t x_max, size_t y_max, size_t z_max)
 {
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -27,7 +27,7 @@ std::tuple<uint64_t, Grid3D> WorldStateContainer::generate_initial_world_state(s
 }
 
 // Function to update the world state based on the current state and rule map
-Grid3D WorldStateContainer::update_world_state(const Grid3D &current_world_state, const Bitset128 &rule)
+Grid3D WorldStateContainer::UpdateWorldState(const Grid3D &current_world_state, const Bitset128 &rule)
 {
     size_t x_max = current_world_state.size();
     size_t y_max = current_world_state[0].size();
@@ -67,7 +67,7 @@ Grid3D WorldStateContainer::update_world_state(const Grid3D &current_world_state
 }
 
 // Function to print the XY slices of the 3D grid for each Z value in a compact format
-void WorldStateContainer::print_slices(const Grid3D &world_state)
+void WorldStateContainer::PrintSlices(const Grid3D &world_state)
 {
     size_t x_max = world_state.size();
     size_t y_max = world_state[0].size();

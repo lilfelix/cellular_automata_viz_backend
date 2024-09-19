@@ -42,16 +42,16 @@ public:
         size_t z_max = 10;
 
         // Generate the Grid3D data (or use the request data)
-        Grid3D grid = generate_initial_world_state(x_max, y_max, z_max);
+        std::tuple<uint64_t, Grid3D> state = states.InitWorldState(x_max, y_max, z_max);
 
         // Serialize the Grid3D data into the response protobuf
         Data *response_data = reply->mutable_data();
-        processVector(grid, response_data);
+        ConvertGrid3DToProto(std::get<1>(state), response_data);
 
         return Status::OK;
     }
 
-    Status initializeWorldState(ServerContext *context, const sim_server::InitializeRequest *request,
+    Status InitWorldState(ServerContext *context, const sim_server::InitializeRequest *request,
                                 sim_server::WorldStateResponse *reply) override
     {
         size_t x_max = request->dimensions().x_max();
@@ -59,10 +59,10 @@ public:
         size_t z_max = request->dimensions().z_max();
 
         // Generate the initial world state
-        Grid3D world_state = states.generate_initial_world_state(x_max, y_max, z_max);
+        std::tuple<uint64_t, Grid3D> state = states.InitWorldState(x_max, y_max, z_max);
 
         // Serialize the generated world state into the response
-        processVector(world_state, reply->mutable_data());
+        ConvertGrid3DToProto(std::get<1>(state), reply->mutable_data());
 
         // Set up the metadata
         sim_server::Metadata *metadata = reply->mutable_metadata();
@@ -72,12 +72,10 @@ public:
         return Status::OK;
     }
 
-    Status stepWorldStateForward(ServerContext *context, const sim_server::StepRequest *request,
+    Status StepWorldStateForward(ServerContext *context, const sim_server::StepRequest *request,
                                  sim_server::WorldStateResponse *reply) override
     {
-        size_t x_max = request->dimensions().x_max();
-        size_t y_max = request->dimensions().y_max();
-        size_t z_max = request->dimensions().z_max();
+        uint64_t world_state_id = request->world_state_id();
 
         // Deserialize the rule
         Bitset128 rule;
@@ -87,10 +85,10 @@ public:
         Grid3D current_world_state = get_current_world_state(request->world_state_id());
 
         // Step the world state forward
-        Grid3D updated_world_state = states.update_world_state(current_world_state, rule);
+        Grid3D updated_world_state = states.UpdateWorldState(current_world_state, rule);
 
         // Serialize the updated world state into the response
-        processVector(updated_world_state, reply->mutable_data());
+        ConvertGrid3DToProto(updated_world_state, reply->mutable_data());
 
         // Set up the metadata
         sim_server::Metadata *metadata = reply->mutable_metadata();
@@ -137,7 +135,7 @@ private:
     /**
      * Serializes a Grid3D into the provided Data protobuf message.
      */
-    void processVector(const Grid3D &grid, sim_server::Data *data_proto)
+    void ConvertGrid3DToProto(const Grid3D &grid, sim_server::Data *data_proto)
     {
         for (const auto &grid2d : grid)
         {

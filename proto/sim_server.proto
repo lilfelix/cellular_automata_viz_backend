@@ -56,7 +56,7 @@ message WorldStateResponse {
 
 // Service definition.
 service DataService {
-  rpc initializeWorldState(InitializeRequest) returns (WorldStateResponse);
-  rpc stepWorldStateForward(StepRequest) returns (WorldStateResponse);
+  rpc InitWorldState(InitializeRequest) returns (WorldStateResponse);
+  rpc StepWorldStateForward(StepRequest) returns (WorldStateResponse);
   rpc GetData(RequestMessage) returns (ResponseMessage);
 }
