@@ -21,7 +21,13 @@ These are the parts needed to build a 3D cellular automata!
 ### grpCurl
 
 `grpcurl -plaintext localhost:50051 list`
-`grpcurl -d '{"dimensions":{"y_max":"10","z_max":"10","x_max":"10"}}' -plaintext localhost:50051 sim_server.DataService/initializeWorldState`
+`grpcurl -d '{"dimensions":{"y_max":"10","z_max":"10","x_max":"10"}}' -plaintext localhost:50051 sim_server.StateService/InitWorldState`
+
+```bash
+RULE=$(echo -n 0123456789abcdef0123456789abcdef | xxd -r -p | base64); \       
+grpcurl -d '{"world_state_id":"0", "rule":"'$RULE'"}' -plaintext localhost:50051 \
+sim_server.StateService/StepWorldStateForward
+```
 
 ### Protobuf
 [Version support](https://protobuf.dev/support/version-support/)

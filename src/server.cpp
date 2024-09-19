@@ -13,46 +13,16 @@ using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
 using grpc::Status;
-using sim_server::Data;
-using sim_server::DataService;
 using sim_server::Metadata;
-using sim_server::RequestMessage;
-using sim_server::ResponseMessage;
+using sim_server::StateService;
 using sim_server::Vector2D;
 using sim_server::Vector3D;
 
-class DataServiceImpl final : public DataService::Service
+class StateServiceImpl final : public StateService::Service
 {
 public:
-    Status GetData(ServerContext *context, const RequestMessage *request,
-                   ResponseMessage *reply) override
-    {
-        // Log received metadata for debugging
-        std::cout << "Received request with step: " << request->metadata().step()
-                  << " and status: " << request->metadata().status() << std::endl;
-
-        // Fill the response metadata
-        Metadata *response_metadata = reply->mutable_metadata();
-        response_metadata->set_step(request->metadata().step());
-        response_metadata->set_status("Processed " + request->metadata().status());
-
-        // Assume we are generating or receiving the Grid3D data to be serialized
-        size_t x_max = 10; // Example size, you can get this dynamically or from the request
-        size_t y_max = 10;
-        size_t z_max = 10;
-
-        // Generate the Grid3D data (or use the request data)
-        std::tuple<uint64_t, Grid3D> state = states.InitWorldState(x_max, y_max, z_max);
-
-        // Serialize the Grid3D data into the response protobuf
-        Data *response_data = reply->mutable_data();
-        ConvertGrid3DToProto(std::get<1>(state), response_data);
-
-        return Status::OK;
-    }
-
     Status InitWorldState(ServerContext *context, const sim_server::InitializeRequest *request,
-                                sim_server::WorldStateResponse *reply) override
+                          sim_server::WorldStateResponse *reply) override
     {
         size_t x_max = request->dimensions().x_max();
         size_t y_max = request->dimensions().y_max();
@@ -62,7 +32,7 @@ public:
         std::tuple<uint64_t, Grid3D> state = states.InitWorldState(x_max, y_max, z_max);
 
         // Serialize the generated world state into the response
-        ConvertGrid3DToProto(std::get<1>(state), reply->mutable_data());
+        ConvertGrid3DToProto(std::get<1>(state), reply->mutable_state());
 
         // Set up the metadata
         sim_server::Metadata *metadata = reply->mutable_metadata();
@@ -88,7 +58,7 @@ public:
         Grid3D updated_world_state = states.UpdateWorldState(current_world_state, rule);
 
         // Serialize the updated world state into the response
-        ConvertGrid3DToProto(updated_world_state, reply->mutable_data());
+        ConvertGrid3DToProto(updated_world_state, reply->mutable_state());
 
         // Set up the metadata
         sim_server::Metadata *metadata = reply->mutable_metadata();
@@ -102,7 +72,6 @@ public:
     }
 
 private:
-    
     WorldStateContainer states; // Automatically initialized via WorldStateContainer's default constructor
     // This is a placeholder; you need to implement this to get the current world state.
     Grid3D get_current_world_state(const uint64_t world_state_id)
@@ -135,11 +104,10 @@ private:
     /**
      * Serializes a Grid3D into the provided Data protobuf message.
      */
-    void ConvertGrid3DToProto(const Grid3D &grid, sim_server::Data *data_proto)
+    void ConvertGrid3DToProto(const Grid3D &grid, sim_server::Vector3D *vec3d_proto)
     {
         for (const auto &grid2d : grid)
         {
-            sim_server::Vector3D *vec3d_proto = data_proto->add_data(); // Add a new Vector3D to the Data message
             for (const auto &grid1d : grid2d)
             {
                 sim_server::Vector2D *vec2d_proto = vec3d_proto->add_vec2d(); // Add a new Vector2D to the current Vector3D
@@ -156,7 +124,7 @@ private:
 void RunServer()
 {
     std::string server_address("0.0.0.0:50051");
-    DataServiceImpl service;
+    StateServiceImpl service;
 
     ServerBuilder builder;
     builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());

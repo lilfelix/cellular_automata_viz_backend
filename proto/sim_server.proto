@@ -2,21 +2,11 @@ syntax = "proto3";
 
 package sim_server;
 
-// The top-level message containing metadata and data.
-message ResponseMessage {
-  Metadata metadata = 1;
-  Data data = 2;
-}
-
 // Metadata sub-message.
 message Metadata {
-  int64 step = 1;
-  string status = 2;
-}
-
-// Data sub-message.
-message Data {
-  repeated Vector3D data = 1;
+  int64 state_id = 1;
+  int64 step = 2;
+  string status = 3;
 }
 
 // 3D Vector of uint8_t values.
@@ -26,12 +16,6 @@ message Vector3D {
 
 message Vector2D {
   repeated uint32 vec1d = 1;
-}
-
-// The request message format, which mirrors the response.
-message RequestMessage {
-  Metadata metadata = 1;
-  Data data = 2;
 }
 
 message GridDimensions {
@@ -51,12 +35,11 @@ message StepRequest {
 
 message WorldStateResponse {
   Metadata metadata = 1;
-  Data data = 2;
+  Vector3D  state = 2;
 }
 
 // Service definition.
-service DataService {
+service StateService {
   rpc InitWorldState(InitializeRequest) returns (WorldStateResponse);
   rpc StepWorldStateForward(StepRequest) returns (WorldStateResponse);
-  rpc GetData(RequestMessage) returns (ResponseMessage);
 }
