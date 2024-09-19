@@ -31,6 +31,8 @@ public:
         // Generate the initial world state
         std::tuple<uint64_t, Grid3D> state = states.InitWorldState(x_max, y_max, z_max);
 
+        set_state_by_id(state);
+
         // Serialize the generated world state into the response
         ConvertGrid3DToProto(std::get<1>(state), reply->mutable_state());
 
@@ -66,7 +68,7 @@ public:
         metadata->set_status("World state stepped forward");
 
         // Optionally save the updated world state for future steps
-        save_current_world_state(request->world_state_id(), updated_world_state);
+        set_state_by_id(std::tuple<uint64_t, Grid3D>({request->world_state_id(), updated_world_state}));
 
         return Status::OK;
     }
@@ -82,10 +84,9 @@ private:
     }
 
     // Placeholder for saving the current world state after a step.
-    void save_current_world_state(const uint64_t world_state_id, const Grid3D &state)
+    void set_state_by_id(const std::tuple<uint64_t,Grid3D> &state)
     {
-        // Store the state for future steps
-        states.world_states.insert({world_state_id, state});
+        states.world_states.insert({std::get<0>(state), std::get<1>(state)});
     }
 
     // Placeholder to keep track of the current step
