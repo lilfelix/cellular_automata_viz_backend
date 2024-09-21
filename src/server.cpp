@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <chrono>
 
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
@@ -23,6 +24,8 @@ using sim_server::Vector3D;
 class StateServiceImpl final : public StateService::Service
 {
 public:
+    static const uint64_t kDefaultSimulationTimeoutSeconds = 3;
+
     Status InitWorldState(ServerContext *context, const sim_server::InitializeRequest *request,
                           sim_server::WorldStateResponse *reply) override
     {
@@ -38,34 +41,9 @@ public:
     Status StepWorldStateForward(ServerContext *context, const sim_server::StepRequest *request,
                                  sim_server::WorldStateResponse *reply) override
     {
-        uint64_t world_state_id = request->world_state_id();
-
-        // Deserialize the rule
         Bitset128 rule;
         std::memcpy(&rule, request->rule().data(), sizeof(Bitset128));
-
-        // Get the current world state
-        Grid3D current_world_state = get_current_world_state(request->world_state_id());
-
-        // Step the world state forward
-        Grid3D updated_world_state = states.UpdateWorldState(current_world_state, rule);
-
-        // Serialize the updated world state into the response
-        ConvertGrid3DToProto(updated_world_state, *reply->mutable_state());
-
-        // Set up the metadata
-        sim_server::Metadata *metadata = reply->mutable_metadata();
-        metadata->set_step(get_current_step() + 1); // Increment step count
-        metadata->set_status("World state stepped forward");
-
-        // Optionally save the updated world state for future steps
-        set_state_by_id(std::tuple<uint64_t, Grid3D>({request->world_state_id(), updated_world_state}));
-
-        if (!states.IsSameAs(current_world_state, updated_world_state))
-        {
-            states.PrintSlices(updated_world_state);
-            std::cout << "State changed!" << std::endl;
-        }
+        reply->CopyFrom(StepWorldStateForwardInternal(request->world_state_id(), rule));
 
         return Status::OK;
     }
@@ -73,13 +51,38 @@ public:
     Status StartSimulation(ServerContext *context, const sim_server::StartSimulationRequest *request,
                            sim_server::SimulationResultResponse *reply) override
     {
-        size_t x_max = request->init_req().dimensions().x_max();
-        size_t y_max = request->init_req().dimensions().y_max();
-        size_t z_max = request->init_req().dimensions().z_max();
+        const size_t x_max = request->init_req().dimensions().x_max();
+        const size_t y_max = request->init_req().dimensions().y_max();
+        const size_t z_max = request->init_req().dimensions().z_max();
 
-        reply->mutable_start_state()->CopyFrom(InitWorldStateInternal(x_max, y_max, z_max));
+        sim_server::WorldStateResponse start_state = InitWorldStateInternal(x_max, y_max, z_max);
+        const uint64_t state_id = start_state.metadata().state_id();
+        reply->mutable_start_state()->CopyFrom(start_state);
 
-        // TODO refactor StepSimulationForward to use internal version
+        Bitset128 rule;
+        std::memcpy(&rule, request->step_req().rule().data(), sizeof(Bitset128));
+        const uint64_t num_steps = request->step_req().num_steps();
+
+        const uint64_t timeout = request->has_timeout() ? request->timeout() : kDefaultSimulationTimeoutSeconds;
+
+        sim_server::WorldStateResponse end_state;
+        auto start_time = std::chrono::steady_clock::now();
+        for (uint64_t i = 0; i < num_steps; ++i)
+        {
+            auto current_time = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count() >= timeout)
+            {
+                std::cout << "Ending simulation due to timeout" << std::endl;
+                break;
+            }
+            // The temporary object returned by StepWorldStateForwardInternal is moved into end_state
+            end_state = StepWorldStateForwardInternal(state_id, rule); // Move assignment (automatic if move constructor exists)
+        }
+
+        reply->mutable_end_state()->CopyFrom(end_state);
+
+        // TODO: proto being returned from StepWorldStateForwardInternal also complicates equality comparison
+        // reply->set_state_changed_during_sim(start_state == end_state); 
 
         return Status::OK;
     }
@@ -144,6 +147,35 @@ private:
         ConvertGrid3DToProto(std::get<1>(state), *state_proto.mutable_state());
         state_proto.mutable_metadata()->set_step(0);
         state_proto.mutable_metadata()->set_status("World state initialized");
+
+        return state_proto;
+    }
+
+    // TODO: no need to write into proto if being called from loop
+    sim_server::WorldStateResponse StepWorldStateForwardInternal(const uint64_t world_state_id, const Bitset128 rule)
+    {
+        // Next world state response
+        sim_server::WorldStateResponse state_proto;
+
+        // Get the current world state
+        Grid3D current_world_state = get_current_world_state(world_state_id);
+
+        // Step the world state forward
+        Grid3D updated_world_state = states.UpdateWorldState(current_world_state, rule);
+
+        // Serialize the updated world state into the response
+        ConvertGrid3DToProto(updated_world_state, *state_proto.mutable_state());
+        state_proto.mutable_metadata()->set_step(get_current_step() + 1); // Increment step count
+        state_proto.mutable_metadata()->set_status("World state stepped forward");
+
+        // Optionally save the updated world state for future steps
+        set_state_by_id(std::tuple<uint64_t, Grid3D>({world_state_id, updated_world_state}));
+
+        if (!states.IsSameAs(current_world_state, updated_world_state))
+        {
+            states.PrintSlices(updated_world_state);
+            std::cout << "State changed!" << std::endl;
+        }
 
         return state_proto;
     }

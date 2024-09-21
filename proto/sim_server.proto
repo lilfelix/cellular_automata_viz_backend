@@ -41,7 +41,7 @@ message WorldStateResponse {
 
 message StartSimulationRequest {
   InitializeRequest init_req = 1;
-  StepRequest end_state = 2;
+  StepRequest step_req = 2;
   optional int64 timeout = 3;
 }
 
