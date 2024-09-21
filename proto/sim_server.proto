@@ -31,6 +31,7 @@ message InitializeRequest {
 message StepRequest {
   int64 world_state_id = 1;
   bytes rule = 2; // 128-bit rule as a byte array
+  optional int64 num_steps = 3;
 }
 
 message WorldStateResponse {
@@ -38,8 +39,22 @@ message WorldStateResponse {
   Vector3D  state = 2;
 }
 
+message StartSimulationRequest {
+  InitializeRequest init_req = 1;
+  StepRequest end_state = 2;
+  optional int64 timeout = 3;
+}
+
+message SimulationResultResponse {
+  WorldStateResponse start_state = 1;
+  WorldStateResponse end_state = 2;
+  bool state_changed_during_sim = 3;
+}
+
 // Service definition.
 service StateService {
   rpc InitWorldState(InitializeRequest) returns (WorldStateResponse);
   rpc StepWorldStateForward(StepRequest) returns (WorldStateResponse);
+  // Combines InitWorldState and StepWorldStateForward
+  rpc StartSimulation(StartSimulationRequest) returns (SimulationResultResponse);
 }

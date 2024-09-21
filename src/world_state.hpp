@@ -20,4 +20,6 @@ public:
     Grid3D UpdateWorldState(const Grid3D &current_world_state, const Bitset128 &rule);
     // Print the XY slices of the 3D grid for each Z value
     void PrintSlices(const Grid3D &world_state);
+    // Check if two states are 
+    bool IsSameAs(const Grid3D &state_a, const Grid3D &state_b);
 };

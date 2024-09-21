@@ -90,3 +90,7 @@ void WorldStateContainer::PrintSlices(const Grid3D &world_state)
     }
     std::cout << std::endl; // Final newline for clarity
 }
+
+bool WorldStateContainer::IsSameAs(const Grid3D &state_a, const Grid3D &state_b) {
+    return state_a == state_b;
+}

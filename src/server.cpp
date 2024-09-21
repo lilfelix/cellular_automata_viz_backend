@@ -14,6 +14,8 @@ using grpc::ServerBuilder;
 using grpc::ServerContext;
 using grpc::Status;
 using sim_server::Metadata;
+using sim_server::SimulationResultResponse;
+using sim_server::StartSimulationRequest;
 using sim_server::StateService;
 using sim_server::Vector2D;
 using sim_server::Vector3D;
@@ -28,18 +30,7 @@ public:
         size_t y_max = request->dimensions().y_max();
         size_t z_max = request->dimensions().z_max();
 
-        // Generate the initial world state
-        std::tuple<uint64_t, Grid3D> state = states.InitWorldState(x_max, y_max, z_max);
-
-        set_state_by_id(state);
-
-        // Serialize the generated world state into the response
-        ConvertGrid3DToProto(std::get<1>(state), reply->mutable_state());
-
-        // Set up the metadata
-        sim_server::Metadata *metadata = reply->mutable_metadata();
-        metadata->set_step(0);
-        metadata->set_status("World state initialized");
+        reply->CopyFrom(InitWorldStateInternal(x_max, y_max, z_max));
 
         return Status::OK;
     }
@@ -60,7 +51,7 @@ public:
         Grid3D updated_world_state = states.UpdateWorldState(current_world_state, rule);
 
         // Serialize the updated world state into the response
-        ConvertGrid3DToProto(updated_world_state, reply->mutable_state());
+        ConvertGrid3DToProto(updated_world_state, *reply->mutable_state());
 
         // Set up the metadata
         sim_server::Metadata *metadata = reply->mutable_metadata();
@@ -69,6 +60,26 @@ public:
 
         // Optionally save the updated world state for future steps
         set_state_by_id(std::tuple<uint64_t, Grid3D>({request->world_state_id(), updated_world_state}));
+
+        if (!states.IsSameAs(current_world_state, updated_world_state))
+        {
+            states.PrintSlices(updated_world_state);
+            std::cout << "State changed!" << std::endl;
+        }
+
+        return Status::OK;
+    }
+
+    Status StartSimulation(ServerContext *context, const sim_server::StartSimulationRequest *request,
+                           sim_server::SimulationResultResponse *reply) override
+    {
+        size_t x_max = request->init_req().dimensions().x_max();
+        size_t y_max = request->init_req().dimensions().y_max();
+        size_t z_max = request->init_req().dimensions().z_max();
+
+        reply->mutable_start_state()->CopyFrom(InitWorldStateInternal(x_max, y_max, z_max));
+
+        // TODO refactor StepSimulationForward to use internal version
 
         return Status::OK;
     }
@@ -84,7 +95,7 @@ private:
     }
 
     // Placeholder for saving the current world state after a step.
-    void set_state_by_id(const std::tuple<uint64_t,Grid3D> &state)
+    void set_state_by_id(const std::tuple<uint64_t, Grid3D> &state)
     {
         states.world_states.insert({std::get<0>(state), std::get<1>(state)});
     }
@@ -105,19 +116,36 @@ private:
     /**
      * Serializes a Grid3D into the provided Data protobuf message.
      */
-    void ConvertGrid3DToProto(const Grid3D &grid, sim_server::Vector3D *vec3d_proto)
+    void ConvertGrid3DToProto(const Grid3D &grid, sim_server::Vector3D &vec3d_proto)
     {
         for (const auto &grid2d : grid)
         {
             for (const auto &grid1d : grid2d)
             {
-                sim_server::Vector2D *vec2d_proto = vec3d_proto->add_vec2d(); // Add a new Vector2D to the current Vector3D
+                sim_server::Vector2D *vec2d_proto = vec3d_proto.add_vec2d(); // Add a new Vector2D to the current Vector3D
                 for (const auto &value : grid1d)
                 {
                     vec2d_proto->add_vec1d(static_cast<int32_t>(value)); // Add 0 or 1 as integers
                 }
             }
         }
+    }
+
+    sim_server::WorldStateResponse InitWorldStateInternal(const size_t x_max, const size_t y_max, const size_t z_max)
+    {
+        sim_server::WorldStateResponse state_proto;
+
+        // Generate the initial world state
+        std::tuple<uint64_t, Grid3D> state = states.InitWorldState(x_max, y_max, z_max);
+
+        set_state_by_id(state);
+
+        // Serialize the generated world state into the response
+        ConvertGrid3DToProto(std::get<1>(state), *state_proto.mutable_state());
+        state_proto.mutable_metadata()->set_step(0);
+        state_proto.mutable_metadata()->set_status("World state initialized");
+
+        return state_proto;
     }
 };
 
