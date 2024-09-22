@@ -4,3 +4,4 @@ conan
 external/*/build/
 external/*/CMakeFiles/
 external
+proto/generated

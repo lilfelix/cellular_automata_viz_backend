@@ -29,7 +29,7 @@ message InitializeRequest {
 }
 
 message StepRequest {
-  int64 world_state_id = 1;
+  int64 world_state_id = 1; // TODO: make optional as it can't be provided as part of StartSimulationRequest
   bytes rule = 2; // 128-bit rule as a byte array
   optional int64 num_steps = 3;
 }
