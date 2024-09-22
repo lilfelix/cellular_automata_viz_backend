@@ -15,7 +15,11 @@ message Vector3D {
 }
 
 message Vector2D {
-  repeated uint32 vec1d = 1;
+  repeated Vector1D vec1d = 1;
+}
+
+message Vector1D {
+  repeated uint32 bit = 1;
 }
 
 message GridDimensions {

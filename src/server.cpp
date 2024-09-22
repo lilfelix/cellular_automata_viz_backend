@@ -18,6 +18,7 @@ using sim_server::Metadata;
 using sim_server::SimulationResultResponse;
 using sim_server::StartSimulationRequest;
 using sim_server::StateService;
+using sim_server::Vector1D;
 using sim_server::Vector2D;
 using sim_server::Vector3D;
 
@@ -100,7 +101,7 @@ public:
         end_state_proto.mutable_metadata()->set_step(get_current_step() + 1); // Increment step count
         end_state_proto.mutable_metadata()->set_status("World state stepped forward");
 
-        reply->set_state_changed_during_sim(start_state == end_state);
+        reply->set_state_changed_during_sim(!(start_state == end_state));
 
         // Save the updated world state for future steps
         set_state_by_id(std::tuple<uint64_t, Grid3D>({world_state_id, end_state}));
@@ -144,12 +145,13 @@ private:
     {
         for (const auto &grid2d : grid)
         {
+            sim_server::Vector2D *vec2d_proto = vec3d_proto.add_vec2d(); // Add a new Vector2D to the current Vector3D
             for (const auto &grid1d : grid2d)
             {
-                sim_server::Vector2D *vec2d_proto = vec3d_proto.add_vec2d(); // Add a new Vector2D to the current Vector3D
+                sim_server::Vector1D *vec1d_proto = vec2d_proto->add_vec1d(); // Add a new Vector1D to the current Vector2D
                 for (const auto &value : grid1d)
                 {
-                    vec2d_proto->add_vec1d(static_cast<int32_t>(value)); // Add 0 or 1 as integers
+                    vec1d_proto->add_bit(static_cast<int32_t>(value)); // Add 0 or 1 as integers
                 }
             }
         }
