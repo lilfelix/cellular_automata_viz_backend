@@ -54,6 +54,9 @@ public:
         Grid3D current_world_state = get_current_world_state(world_state_id);
         Grid3D updated_world_state = StepWorldStateForwardInternal(current_world_state, rule);
 
+        // Save the updated state
+        set_state_by_id(world_state_id, updated_world_state);
+
         // Serialize the updated world state into the response
         ConvertGrid3DToProto(updated_world_state, *reply->mutable_state());
         reply->mutable_metadata()->set_step(get_current_step() + 1); // Increment step count
@@ -104,7 +107,7 @@ public:
         reply->set_state_changed_during_sim(!(start_state == end_state));
 
         // Save the updated world state for future steps
-        set_state_by_id(std::tuple<uint64_t, Grid3D>({world_state_id, end_state}));
+        set_state_by_id(world_state_id, end_state);
 
         return Status::OK;
     }
@@ -120,9 +123,9 @@ private:
     }
 
     // Placeholder for saving the current world state after a step.
-    void set_state_by_id(const std::tuple<uint64_t, Grid3D> &state)
+    void set_state_by_id(const uint64_t world_state_id, const Grid3D &state)
     {
-        states.world_states.insert({std::get<0>(state), std::get<1>(state)});
+        states.world_states[world_state_id] = state;
     }
 
     // Placeholder to keep track of the current step
@@ -151,7 +154,7 @@ private:
                 sim_server::Vector1D *vec1d_proto = vec2d_proto->add_vec1d(); // Add a new Vector1D to the current Vector2D
                 for (const auto &value : grid1d)
                 {
-                    vec1d_proto->add_bit(static_cast<int32_t>(value)); // Add 0 or 1 as integers
+                    vec1d_proto->add_bit(static_cast<uint32_t>(value)); // Add 0 or 1 as uint32 to the repeated bit field
                 }
             }
         }
@@ -160,18 +163,31 @@ private:
     std::tuple<uint64_t, Grid3D> InitWorldStateInternal(const size_t x_max, const size_t y_max, const size_t z_max)
     {
         std::tuple<uint64_t, Grid3D> state = states.InitWorldState(x_max, y_max, z_max);
-        set_state_by_id(state);
+        set_state_by_id(std::get<0>(state), std::get<1>(state));
         return state;
+    }
+
+    uint32_t hash3DArray(const std::vector<std::vector<std::vector<uint8_t>>> &array)
+    {
+        uint32_t hash = 0;
+        const uint32_t prime = 31;
+        for (const auto &arr2D : array)
+        {
+            for (const auto &arr1D : arr2D)
+            {
+                for (uint8_t value : arr1D)
+                {
+                    hash = hash * prime + value;
+                }
+            }
+        }
+        return hash;
     }
 
     Grid3D StepWorldStateForwardInternal(const Grid3D &current_world_state, const Bitset128 rule)
     {
         Grid3D updated_world_state = states.UpdateWorldState(current_world_state, rule);
-        if (!states.IsSameAs(current_world_state, updated_world_state))
-        {
-            states.PrintSlices(updated_world_state);
-            std::cout << "State changed!" << std::endl;
-        }
+        std::cout << "before: " + std::to_string(hash3DArray(current_world_state)) + " after: " + std::to_string(hash3DArray(updated_world_state)) << std::endl;
         return updated_world_state;
     }
 };
