@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstdint>
 #include <chrono>
+#include <stdexcept>
 
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
@@ -30,7 +31,6 @@ public:
     Status InitWorldState(ServerContext *context, const sim_server::InitializeRequest *request,
                           sim_server::WorldStateResponse *reply) override
     {
-        set_current_step(0); // TODO: affects all sims. Should be tracked separately
         size_t x_max = request->dimensions().x_max();
         size_t y_max = request->dimensions().y_max();
         size_t z_max = request->dimensions().z_max();
@@ -53,16 +53,15 @@ public:
         std::memcpy(&rule, request->rule().data(), sizeof(Bitset128));
 
         const uint64_t world_state_id = request->world_state_id();
-        Grid3D current_world_state = get_current_world_state(world_state_id);
-        Grid3D updated_world_state = StepWorldStateForwardInternal(current_world_state, rule);
+        Grid3D updated_world_state = StepWorldStateForwardInternal(world_state_id, rule);
 
         // Save the updated state
-        set_state_by_id(world_state_id, updated_world_state);
+        set_world_state_by_id(world_state_id, updated_world_state);
 
         // Serialize the updated world state into the response
         ConvertGrid3DToProto(updated_world_state, *reply->mutable_state());
         reply->mutable_metadata()->set_state_id(world_state_id); 
-        reply->mutable_metadata()->set_step(get_current_step()); 
+        reply->mutable_metadata()->set_step(get_step_by_world_state_id(world_state_id)); 
         reply->mutable_metadata()->set_status("World state stepped forward");
 
         return Status::OK;
@@ -86,7 +85,7 @@ public:
 
         const uint64_t timeout = request->has_timeout() ? request->timeout() : kDefaultSimulationTimeoutSeconds;
 
-        Grid3D current_world_state = get_current_world_state(world_state_id);
+        Grid3D current_world_state = get_world_state_by_id(world_state_id);
         Grid3D end_state;
         auto start_time = std::chrono::steady_clock::now();
         for (uint64_t i = 0; i < num_steps; ++i)
@@ -98,27 +97,29 @@ public:
                 break;
             }
             // The temporary object returned by StepWorldStateForwardInternal is moved into end_state
-            end_state = StepWorldStateForwardInternal(current_world_state, rule); // Move assignment (automatic if move constructor exists)
+            end_state = StepWorldStateForwardInternal(world_state_id, rule); // Move assignment (automatic if move constructor exists)
         }
 
         // Serialize the updated world state into the response
         sim_server::WorldStateResponse &end_state_proto = *reply->mutable_end_state();
         ConvertGrid3DToProto(end_state, *end_state_proto.mutable_state());
-        end_state_proto.mutable_metadata()->set_step(get_current_step());
+        end_state_proto.mutable_metadata()->set_step(get_step_by_world_state_id(world_state_id));
         end_state_proto.mutable_metadata()->set_status("World state stepped forward");
 
         reply->set_state_changed_during_sim(!(start_state == end_state));
 
         // Save the updated world state for future steps
-        set_state_by_id(world_state_id, end_state);
+        set_world_state_by_id(world_state_id, end_state);
 
         return Status::OK;
     }
 
 private:
     WorldStateContainer states; // Automatically initialized via WorldStateContainer's default constructor
-    // This is a placeholder; you need to implement this to get the current world state.
-    Grid3D get_current_world_state(const uint64_t world_state_id)
+    std::unordered_map<uint64_t, size_t> world_state_id_to_step;
+
+
+    Grid3D get_world_state_by_id(const uint64_t world_state_id)
     {
         // Retrieve the current world state from a stored location, e.g., a class member or a database
         // TODO: error handling
@@ -126,23 +127,24 @@ private:
     }
 
     // Save the current world state after a step.
-    void set_state_by_id(const uint64_t world_state_id, const Grid3D &state)
+    void set_world_state_by_id(const uint64_t world_state_id, const Grid3D &state)
     {
         states.world_states[world_state_id] = state;
     }
 
     // Keep track of the current step
-    size_t get_current_step() const
+    size_t get_step_by_world_state_id(const uint64_t world_state_id) const
     {
-        return current_step_;
+        if(world_state_id_to_step.find(world_state_id) != world_state_id_to_step.end()) {
+            return world_state_id_to_step.at(world_state_id);
+        }
+        throw std::runtime_error(std::string("Couldn't find mapping for world_state_id: ") + std::to_string(world_state_id));
     }
 
-    void set_current_step(size_t step)
+    void set_step_by_world_state_id(const uint64_t world_state_id, size_t step)
     {
-        current_step_ = step;
+        world_state_id_to_step.emplace(std::pair<uint16_t,size_t>{world_state_id, step});
     }
-
-    size_t current_step_ = 0; // Start at step 0
 
     /**
      * Serializes a Grid3D into the provided Data protobuf message.
@@ -166,7 +168,8 @@ private:
     std::tuple<uint64_t, Grid3D> InitWorldStateInternal(const size_t x_max, const size_t y_max, const size_t z_max)
     {
         std::tuple<uint64_t, Grid3D> state = states.InitWorldState(x_max, y_max, z_max);
-        set_state_by_id(std::get<0>(state), std::get<1>(state));
+        set_world_state_by_id(std::get<0>(state), std::get<1>(state));
+        set_step_by_world_state_id(std::get<0>(state), 0);
         return state;
     }
 
@@ -187,11 +190,12 @@ private:
         return hash;
     }
 
-    Grid3D StepWorldStateForwardInternal(const Grid3D &current_world_state, const Bitset128 rule)
+    Grid3D StepWorldStateForwardInternal(const uint64_t world_state_id, const Bitset128 rule)
     {
+        Grid3D current_world_state = get_world_state_by_id(world_state_id);
         Grid3D updated_world_state = states.UpdateWorldState(current_world_state, rule);
         std::cout << "before: " + std::to_string(hash3DArray(current_world_state)) + " after: " + std::to_string(hash3DArray(updated_world_state)) << std::endl;
-        set_current_step(get_current_step() + 1);
+        set_step_by_world_state_id(world_state_id, get_step_by_world_state_id(world_state_id) + 1);
         return updated_world_state;
     }
 };
