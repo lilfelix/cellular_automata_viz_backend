@@ -30,6 +30,7 @@ public:
     Status InitWorldState(ServerContext *context, const sim_server::InitializeRequest *request,
                           sim_server::WorldStateResponse *reply) override
     {
+        set_current_step(0); // TODO: affects all sims. Should be tracked separately
         size_t x_max = request->dimensions().x_max();
         size_t y_max = request->dimensions().y_max();
         size_t z_max = request->dimensions().z_max();
@@ -38,6 +39,7 @@ public:
 
         // Serialize the generated world state into the response
         ConvertGrid3DToProto(std::get<1>(world_state), *reply->mutable_state());
+        reply->mutable_metadata()->set_state_id(std::get<0>(world_state));
         reply->mutable_metadata()->set_step(0);
         reply->mutable_metadata()->set_status("World state initialized");
 
@@ -59,7 +61,8 @@ public:
 
         // Serialize the updated world state into the response
         ConvertGrid3DToProto(updated_world_state, *reply->mutable_state());
-        reply->mutable_metadata()->set_step(get_current_step() + 1); // Increment step count
+        reply->mutable_metadata()->set_state_id(world_state_id); 
+        reply->mutable_metadata()->set_step(get_current_step()); 
         reply->mutable_metadata()->set_status("World state stepped forward");
 
         return Status::OK;
@@ -101,7 +104,7 @@ public:
         // Serialize the updated world state into the response
         sim_server::WorldStateResponse &end_state_proto = *reply->mutable_end_state();
         ConvertGrid3DToProto(end_state, *end_state_proto.mutable_state());
-        end_state_proto.mutable_metadata()->set_step(get_current_step() + 1); // Increment step count
+        end_state_proto.mutable_metadata()->set_step(get_current_step());
         end_state_proto.mutable_metadata()->set_status("World state stepped forward");
 
         reply->set_state_changed_during_sim(!(start_state == end_state));
@@ -122,13 +125,13 @@ private:
         return states.world_states.at(world_state_id);
     }
 
-    // Placeholder for saving the current world state after a step.
+    // Save the current world state after a step.
     void set_state_by_id(const uint64_t world_state_id, const Grid3D &state)
     {
         states.world_states[world_state_id] = state;
     }
 
-    // Placeholder to keep track of the current step
+    // Keep track of the current step
     size_t get_current_step() const
     {
         return current_step_;
@@ -188,6 +191,7 @@ private:
     {
         Grid3D updated_world_state = states.UpdateWorldState(current_world_state, rule);
         std::cout << "before: " + std::to_string(hash3DArray(current_world_state)) + " after: " + std::to_string(hash3DArray(updated_world_state)) << std::endl;
+        set_current_step(get_current_step() + 1);
         return updated_world_state;
     }
 };
