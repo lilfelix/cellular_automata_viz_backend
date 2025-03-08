@@ -3,8 +3,33 @@
 
 WorldStateContainer::WorldStateContainer() : next_world_state_id(0), world_states() {}
 
-// Function to generate the initial world state with random values (0 or 1)
-std::tuple<uint64_t, Grid3D> WorldStateContainer::InitWorldState(size_t x_max, size_t y_max, size_t z_max)
+/**
+ * Function to generate the initial world state based on Wolfram's rule-naming scheme
+ * - The neighborhood of a cell can include itself, but doesn't have to
+ * - For a 1D grid with 3 neighbors (including itself), there are 2^3=8 neighborhood states.
+ *   Having two states {0,1} means there are 2^8 possible rules
+ */
+tl::expected<std::tuple<uint64_t, Grid3D>, std::string> WorldStateContainer::InitWorldState(size_t x_max, size_t y_max, size_t z_max)
+{
+    // By convention the x-axis is used to determine where to place the "central dot"
+    const size_t central_dot_idx = x_max / 2;
+    if (x_max < 2 || y_max < 2 || z_max < 2 || central_dot_idx < 2)
+    {
+        return tl::unexpected("Invalid dimensions");
+    }
+
+    Grid3D world_state(x_max, std::vector<std::vector<uint8_t>>(y_max, std::vector<uint8_t>(z_max)));
+    size_t dot = x_max / 2;
+    world_state[x_max / 2][y_max / 2][z_max / 2] = 1;
+    uint64_t world_state_id = next_world_state_id++;
+    return tl::expected<std::tuple<uint64_t, Grid3D>, std::string>{
+        std::make_tuple(world_state_id, std::move(world_state))};
+}
+
+/**
+ * Function to generate the initial world state with random values (0 or 1)
+ */
+std::tuple<uint64_t, Grid3D> WorldStateContainer::InitWorldStateRandom(size_t x_max, size_t y_max, size_t z_max)
 {
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -23,7 +48,7 @@ std::tuple<uint64_t, Grid3D> WorldStateContainer::InitWorldState(size_t x_max, s
         }
     }
     uint64_t world_state_id = next_world_state_id++;
-    return std::tuple<uint64_t, Grid3D>(world_state_id, world_state);
+    return std::make_tuple(world_state_id, std::move(world_state));
 }
 
 // Function to update the world state based on the current state and rule map
@@ -91,6 +116,7 @@ void WorldStateContainer::PrintSlices(const Grid3D &world_state)
     std::cout << std::endl; // Final newline for clarity
 }
 
-bool WorldStateContainer::IsSameAs(const Grid3D &state_a, const Grid3D &state_b) {
+bool WorldStateContainer::IsSameAs(const Grid3D &state_a, const Grid3D &state_b)
+{
     return state_a == state_b;
 }

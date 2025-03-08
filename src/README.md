@@ -14,7 +14,7 @@ These are the parts needed to build a 3D cellular automata!
     - Or if the repo is already cloned: `git submodule update --init --recursive`
 - install the dependencies via Conan: 
 ```
-conan install . -s build_type=Release --generator CMakeToolchain
+conan install . --output-folder=out --build=missing --profile:host=default
 ```
 - run CMake to generate the build system `cmake -DCMAKE_BUILD_TYPE=Release -B build -S .`
 - build the project `cmake --build build --parallel 6`

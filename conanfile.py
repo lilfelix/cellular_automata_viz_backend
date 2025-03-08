@@ -5,10 +5,11 @@ class CellularAutomata3DConan(ConanFile):
     name = "cellular_automata3d"
     version = "1.0"
     settings = "os", "compiler", "build_type", "arch"
-    generators = "CMakeDeps", "CMakeToolchain"
+    generators = "CMakeToolchain", "CMakeDeps"
     requires = (
         "protobuf/5.27.0",
         "grpc/1.65.0",
+        "tl-expected/1.1.0",
     )
     exports_sources = "src/*", "CMakeLists.txt", "proto/*"
 

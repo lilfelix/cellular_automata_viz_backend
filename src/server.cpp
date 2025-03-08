@@ -6,6 +6,7 @@
 #include <chrono>
 #include <stdexcept>
 
+#include <tl/expected.hpp>
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/ext/proto_server_reflection_plugin.h>
 #include "sim_server.grpc.pb.h"
@@ -35,11 +36,12 @@ public:
         size_t y_max = request->dimensions().y_max();
         size_t z_max = request->dimensions().z_max();
 
-        std::tuple<uint64_t, Grid3D> world_state = InitWorldStateInternal(x_max, y_max, z_max);
+        tl::expected<std::tuple<uint64_t, Grid3D>, std::string> world_state = InitWorldStateInternal(x_max, y_max, z_max);
+        const auto &[id, grid] = *world_state;
 
         // Serialize the generated world state into the response
-        ConvertGrid3DToProto(std::get<1>(world_state), *reply->mutable_state());
-        reply->mutable_metadata()->set_state_id(std::get<0>(world_state));
+        ConvertGrid3DToProto(grid, *reply->mutable_state());
+        reply->mutable_metadata()->set_state_id(id);
         reply->mutable_metadata()->set_step(0);
         reply->mutable_metadata()->set_status("World state initialized");
 
@@ -60,8 +62,8 @@ public:
 
         // Serialize the updated world state into the response
         ConvertGrid3DToProto(updated_world_state, *reply->mutable_state());
-        reply->mutable_metadata()->set_state_id(world_state_id); 
-        reply->mutable_metadata()->set_step(get_step_by_world_state_id(world_state_id) + 1); 
+        reply->mutable_metadata()->set_state_id(world_state_id);
+        reply->mutable_metadata()->set_step(get_step_by_world_state_id(world_state_id) + 1);
         reply->mutable_metadata()->set_status("World state stepped forward");
 
         return Status::OK;
@@ -74,10 +76,15 @@ public:
         const size_t y_max = request->init_req().dimensions().y_max();
         const size_t z_max = request->init_req().dimensions().z_max();
 
-        std::tuple<uint64_t, Grid3D> start_state_tuple = InitWorldStateInternal(x_max, y_max, z_max);
-        const uint64_t world_state_id = std::get<0>(start_state_tuple);
-        const Grid3D &start_state = std::get<1>(start_state_tuple);
-        ConvertGrid3DToProto(std::get<1>(start_state_tuple), *reply->mutable_start_state()->mutable_state());
+        tl::expected<std::tuple<uint64_t, Grid3D>, std::string> world_state = InitWorldStateInternal(x_max, y_max, z_max);
+        if (!world_state)
+        {
+            return Status(grpc::StatusCode::INVALID_ARGUMENT, world_state.error());
+        }
+
+        const auto &[id, start_state] = *world_state;
+
+        ConvertGrid3DToProto(start_state, *reply->mutable_start_state()->mutable_state());
 
         Bitset128 rule;
         std::memcpy(&rule, request->step_req().rule().data(), sizeof(Bitset128));
@@ -85,7 +92,7 @@ public:
 
         const uint64_t timeout = request->has_timeout() ? request->timeout() : kDefaultSimulationTimeoutSeconds;
 
-        Grid3D current_world_state = get_world_state_by_id(world_state_id);
+        Grid3D current_world_state = get_world_state_by_id(id);
         Grid3D end_state;
         auto start_time = std::chrono::steady_clock::now();
         for (uint64_t i = 0; i < num_steps; ++i)
@@ -97,19 +104,19 @@ public:
                 break;
             }
             // The temporary object returned by StepWorldStateForwardInternal is moved into end_state
-            end_state = StepWorldStateForwardInternal(world_state_id, rule); // Move assignment (automatic if move constructor exists)
+            end_state = StepWorldStateForwardInternal(id, rule); // Move assignment (automatic if move constructor exists)
         }
 
         // Serialize the updated world state into the response
         sim_server::WorldStateResponse &end_state_proto = *reply->mutable_end_state();
         ConvertGrid3DToProto(end_state, *end_state_proto.mutable_state());
-        end_state_proto.mutable_metadata()->set_step(get_step_by_world_state_id(world_state_id) + 1);
+        end_state_proto.mutable_metadata()->set_step(get_step_by_world_state_id(id) + 1);
         end_state_proto.mutable_metadata()->set_status("World state stepped forward");
 
         reply->set_state_changed_during_sim(!(start_state == end_state));
 
         // Save the updated world state for future steps
-        set_world_state_by_id(world_state_id, end_state);
+        set_world_state_by_id(id, end_state);
 
         return Status::OK;
     }
@@ -117,7 +124,6 @@ public:
 private:
     WorldStateContainer states; // Automatically initialized via WorldStateContainer's default constructor
     std::unordered_map<uint64_t, size_t> world_state_id_to_step;
-
 
     Grid3D get_world_state_by_id(const uint64_t world_state_id)
     {
@@ -165,11 +171,17 @@ private:
         }
     }
 
-    std::tuple<uint64_t, Grid3D> InitWorldStateInternal(const size_t x_max, const size_t y_max, const size_t z_max)
+    tl::expected<std::tuple<uint64_t, Grid3D>, std::string> InitWorldStateInternal(const size_t x_max, const size_t y_max, const size_t z_max)
     {
-        std::tuple<uint64_t, Grid3D> state = states.InitWorldState(x_max, y_max, z_max);
-        set_world_state_by_id(std::get<0>(state), std::get<1>(state));
-        set_step_by_world_state_id(std::get<0>(state), 0);
+        tl::expected<std::tuple<uint64_t, Grid3D>, std::string> state = states.InitWorldState(x_max, y_max, z_max);
+        if (!state)
+        {
+            std::cerr << "Failed to initialize world state!" << std::endl;
+            return tl::unexpected(state.error());
+        }
+        const auto &[id, grid] = *state;
+        set_world_state_by_id(id, grid);
+        set_step_by_world_state_id(id, 0);
         return state;
     }
 

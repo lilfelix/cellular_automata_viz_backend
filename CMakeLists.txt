@@ -9,12 +9,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Set the architecture for Apple Silicon
 set(CMAKE_OSX_ARCHITECTURES "arm64")
-set(CMAKE_BUILD_PARALLEL_LEVEL 6) # use "nproc" to check number of cores available
 
 # Add the gRPC submodule to CMake build. Exclude from default build unless needed
 add_subdirectory(external/grpc EXCLUDE_FROM_ALL)
 
-# Set the output directories for built targets
+# # Set the output directories for built targets
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
@@ -27,14 +26,9 @@ if(NOT SRCS)
     message(FATAL_ERROR "No source files found in src directory.")
 endif()
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    message(STATUS "Debug mode: Adding debug flags")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")  # No optimization, full debug symbols
-endif()
 
 # Proto files directory
 set(GENERATED_DIR ${CMAKE_BINARY_DIR}/generated)
-file(MAKE_DIRECTORY ${GENERATED_DIR})
 
 # Find the grpc_cpp_plugin executable
 set(_GRPC_CPP_PLUGIN_EXECUTABLE "${CMAKE_SOURCE_DIR}/external/grpc/cmake/build/grpc_cpp_plugin")
@@ -68,18 +62,29 @@ foreach(PROTO_FILE ${PROTO_FILES})
 endforeach()
 
 # Add include directories for generated files and Conan packages
-include_directories(${GENERATED_DIR})
-include_directories(${CMAKE_BINARY_DIR}/conan/include)
-include_directories(${CMAKE_SOURCE_DIR}/include)
+message(STATUS "GENERATED_DIR: ${GENERATED_DIR}")
+message(STATUS "CMAKE_BINARY_DIR: ${CMAKE_BINARY_DIR}")
+include(${CMAKE_BINARY_DIR}/generators/conan_toolchain.cmake)
 
 # Add executable target
 add_executable(CellularAutomata3D ${SRCS})
 
-# Link libraries provided by Conan
-target_link_libraries(CellularAutomata3D PRIVATE ${CONAN_LIBS})
+target_include_directories(CellularAutomata3D PRIVATE ${GENERATED_DIR})
 
-# Link gRPC lib built from source
-target_link_libraries(CellularAutomata3D PRIVATE grpc++ grpc++_reflection)
+# Link libraries provided by Conan
+find_package(tl-expected REQUIRED CONFIG)
+target_link_libraries(CellularAutomata3D
+    PRIVATE
+        protobuf::libprotobuf
+        grpc++
+        grpc++_reflection
+        tl::expected
+)
+
+target_compile_options(CellularAutomata3D
+    PRIVATE
+        $<$<CONFIG:Debug>:-O0 -g>
+)
 
 # Install target
 install(TARGETS CellularAutomata3D DESTINATION bin)
