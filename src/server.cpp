@@ -61,7 +61,7 @@ public:
         // Serialize the updated world state into the response
         ConvertGrid3DToProto(updated_world_state, *reply->mutable_state());
         reply->mutable_metadata()->set_state_id(world_state_id); 
-        reply->mutable_metadata()->set_step(get_step_by_world_state_id(world_state_id)); 
+        reply->mutable_metadata()->set_step(get_step_by_world_state_id(world_state_id) + 1); 
         reply->mutable_metadata()->set_status("World state stepped forward");
 
         return Status::OK;
@@ -103,7 +103,7 @@ public:
         // Serialize the updated world state into the response
         sim_server::WorldStateResponse &end_state_proto = *reply->mutable_end_state();
         ConvertGrid3DToProto(end_state, *end_state_proto.mutable_state());
-        end_state_proto.mutable_metadata()->set_step(get_step_by_world_state_id(world_state_id));
+        end_state_proto.mutable_metadata()->set_step(get_step_by_world_state_id(world_state_id) + 1);
         end_state_proto.mutable_metadata()->set_status("World state stepped forward");
 
         reply->set_state_changed_during_sim(!(start_state == end_state));
@@ -135,15 +135,15 @@ private:
     // Keep track of the current step
     size_t get_step_by_world_state_id(const uint64_t world_state_id) const
     {
-        if(world_state_id_to_step.find(world_state_id) != world_state_id_to_step.end()) {
-            return world_state_id_to_step.at(world_state_id);
-        }
-        throw std::runtime_error(std::string("Couldn't find mapping for world_state_id: ") + std::to_string(world_state_id));
+        // if(world_state_id_to_step.find(world_state_id) != world_state_id_to_step.end()) {
+        return world_state_id_to_step.at(world_state_id);
+        // }
+        // throw std::runtime_error(std::string("Couldn't find mapping for world_state_id: ") + std::to_string(world_state_id));
     }
 
     void set_step_by_world_state_id(const uint64_t world_state_id, size_t step)
     {
-        world_state_id_to_step.emplace(std::pair<uint16_t,size_t>{world_state_id, step});
+        world_state_id_to_step[world_state_id] = step;
     }
 
     /**
