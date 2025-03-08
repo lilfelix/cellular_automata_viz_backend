@@ -31,14 +31,14 @@ sim_server.StateService/StepWorldStateForward
 ```
 
 ### Protobuf
-[Version support](https://protobuf.dev/support/version-support/)
-[Good blogpost on gRPC with CMake](https://www.f-ax.de/dev/2020/11/08/grpc-plugin-cmake-support.html)
+The compiling of .proto to C++ source files is handled by CMake. See CMakeLists.txt.  
+It can also be done manually:
 
 For release build:
 ```bash
 protoc -I=$PWD/proto \
-       --cpp_out=$PWD/build/generated \
-       --grpc_out=$PWD/build/generated \
+       --cpp_out=$PWD/out/build/Release/generated \
+       --grpc_out=$PWD/out/build/Release/generated \
        --plugin=protoc-gen-grpc=$(find . -type f -name grpc_cpp_plugin | head -n1) \
        $PWD/proto/sim_server.proto
 ```
@@ -46,11 +46,14 @@ protoc -I=$PWD/proto \
 For debug build:
 ```bash
 protoc -I=$PWD/proto \
-       --cpp_out=$PWD/build/debug/generated \
-       --grpc_out=$PWD/build/debug/generated \
+       --cpp_out=$PWD/out/build/Debug/generated \
+       --grpc_out=$PWD/out/build/Debug/generated \
        --plugin=protoc-gen-grpc=$(find . -type f -name grpc_cpp_plugin | head -n1) \
        $PWD/proto/sim_server.proto
 ```
+
+[Version support](https://protobuf.dev/support/version-support/)
+[Good blogpost on gRPC with CMake](https://www.f-ax.de/dev/2020/11/08/grpc-plugin-cmake-support.html)
 
 ### Conan
 

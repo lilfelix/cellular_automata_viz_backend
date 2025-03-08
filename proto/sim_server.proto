@@ -38,6 +38,17 @@ message StepRequest {
   optional int64 num_steps = 3;
 }
 
+message UpdateRuleRequest {
+  int64 world_state_id = 1; 
+  int64 rule_number = 2; // rule as an integer
+}
+
+message UpdateRuleResponse {
+  int64 world_state_id = 1; 
+  int64 rule_number = 2; // rule as an integer
+  bytes rule = 3; // 128-bit rule as a byte array
+}
+
 message WorldStateResponse {
   Metadata metadata = 1;
   Vector3D  state = 2;
@@ -59,6 +70,7 @@ message SimulationResultResponse {
 service StateService {
   rpc InitWorldState(InitializeRequest) returns (WorldStateResponse);
   rpc StepWorldStateForward(StepRequest) returns (WorldStateResponse);
+  rpc UpdateRule(UpdateRuleRequest) returns (UpdateRuleResponse);
   // Combines InitWorldState and StepWorldStateForward
   rpc StartSimulation(StartSimulationRequest) returns (SimulationResultResponse);
 }

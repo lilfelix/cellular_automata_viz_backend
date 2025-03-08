@@ -89,6 +89,21 @@ public:
         return Status::OK;
     }
 
+    // Only parses rule. Rule is not persisted past lifetime of request
+    Status UpdateRule(ServerContext *context, const sim_server::UpdateRuleRequest *request,
+                      sim_server::UpdateRuleResponse *reply) override
+    {
+        reply->set_world_state_id(request->world_state_id());
+        reply->set_rule_number(request->rule_number());
+        Bitset128 rule = ParseBitSetRuleFromInteger(request->rule_number());
+
+        // Convert to string format
+        std::string serialized(reinterpret_cast<const char *>(&rule), sizeof(Bitset128));
+        reply->set_rule(serialized);
+
+        return Status::OK;
+    }
+
     Status StartSimulation(ServerContext *context, const sim_server::StartSimulationRequest *request,
                            sim_server::SimulationResultResponse *reply) override
     {
@@ -123,12 +138,12 @@ public:
                 break;
             }
             // The temporary object returned by StepWorldStateForwardInternal is moved into end_state
-            auto step_result = StepWorldStateForwardInternal(id, rule);
-            if (!step_result)
+            auto step_state_result = StepWorldStateForwardInternal(id, rule);
+            if (!step_state_result)
             {
-                return Status(grpc::StatusCode::INTERNAL, step_result.error());
+                return Status(grpc::StatusCode::INTERNAL, step_state_result.error());
             }
-            end_state = *step_result; // Move assignment (automatic if move constructor exists)
+            end_state = *step_state_result; // Move assignment (automatic if move constructor exists)
         }
 
         // Serialize the updated world state into the response
@@ -247,6 +262,24 @@ private:
                                            set_step_by_world_state_id(world_state_id, step + 1);
                                            return updated; // propagate updated world state
                                        }); });
+    }
+
+    /**
+     * Accepts a uint64_t (max 64 bits set).
+     * Sets the corresponding bits in a std::bitset<128>.
+     * Higher bits are implicitly 0.
+     * */
+    Bitset128 ParseBitSetRuleFromInteger(uint64_t rule_number)
+    {
+        Bitset128 rule;
+        for (int i = 0; i < 64; ++i)
+        {
+            if (rule_number & (1ULL << i))
+            {
+                rule.set(i);
+            }
+        }
+        return rule;
     }
 };
 

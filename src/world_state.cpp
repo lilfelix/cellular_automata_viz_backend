@@ -1,5 +1,6 @@
 #include "world_state.hpp"
 #include "random_bitset.hpp"
+#include <sstream>
 
 WorldStateContainer::WorldStateContainer() : next_world_state_id(0), world_states() {}
 
@@ -13,9 +14,11 @@ tl::expected<std::tuple<uint64_t, Grid3D>, std::string> WorldStateContainer::Ini
 {
     // By convention the x-axis is used to determine where to place the "central dot"
     const size_t central_dot_idx = x_max / 2;
-    if (x_max < 2 || y_max < 2 || z_max < 2 || central_dot_idx < 2)
+    if (central_dot_idx < 2 || y_max < 1 || z_max < 1)
     {
-        return tl::unexpected("Invalid dimensions");
+        std::ostringstream oss;
+        oss << "Invalid dimensions: x=" << x_max << ", y=" << y_max << ", z=" << z_max << ", center=" << central_dot_idx;
+        return tl::unexpected(oss.str());
     }
 
     Grid3D world_state(x_max, std::vector<std::vector<uint8_t>>(y_max, std::vector<uint8_t>(z_max)));
