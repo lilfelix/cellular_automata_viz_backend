@@ -18,8 +18,8 @@
                 "CMAKE_POLICY_DEFAULT_CMP0091": "NEW",
                 "CMAKE_BUILD_TYPE": "Release"
             },
-            "toolchainFile": "conan_toolchain.cmake",
-            "binaryDir": "/Users/felix/Code/cell_automata_project/build/release"
+            "toolchainFile": "build/Release/generators/conan_toolchain.cmake",
+            "binaryDir": "build/Release/bin"
         },
         {
             "name": "conan-debug",
@@ -30,8 +30,8 @@
                 "CMAKE_POLICY_DEFAULT_CMP0091": "NEW",
                 "CMAKE_BUILD_TYPE": "Debug"
             },
-            "toolchainFile": "/Users/felix/Code/cell_automata_project/build/debug/build/conan_toolchain.cmake",
-            "binaryDir": "/Users/felix/Code/cell_automata_project/build/debug/bin"
+            "toolchainFile": "build/Debug/generators/conan_toolchain.cmake",
+            "binaryDir": "build/Debug/bin"
         }
     ],
     "buildPresets": [

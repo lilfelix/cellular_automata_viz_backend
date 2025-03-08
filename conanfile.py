@@ -1,5 +1,5 @@
 from conan import ConanFile
-from conan.tools.cmake import CMake
+from conan.tools.cmake import CMake, cmake_layout
 
 class CellularAutomata3DConan(ConanFile):
     name = "cellular_automata3d"
@@ -13,9 +13,8 @@ class CellularAutomata3DConan(ConanFile):
     exports_sources = "src/*", "CMakeLists.txt", "proto/*"
 
     def layout(self):
-        self.folders.build = "build"
-        self.folders.generators = "build"
-        self.folders.source = "."
+        cmake_layout(self)
+        self.folders.build = "."  # avoid nested build/
 
     def build(self):
         cmake = CMake(self)

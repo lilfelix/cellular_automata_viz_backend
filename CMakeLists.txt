@@ -28,7 +28,6 @@ if(NOT SRCS)
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    SET(CMAKE_MAKE_PROGRAM /usr/bin/make FORCE)
     message(STATUS "Debug mode: Adding debug flags")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g")  # No optimization, full debug symbols
 endif()
