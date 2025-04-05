@@ -95,7 +95,9 @@ public:
     {
         reply->set_world_state_id(request->world_state_id());
         reply->set_rule_number(request->rule_number());
-        Bitset128 rule = ParseBitSetRuleFromInteger(request->rule_number());
+
+        // Bitset128 rule = ParseBitSetRuleFromInteger(request->rule_number());
+        Bitset128 rule = build_from_eca(request->rule_number());
 
         // Convert to string format
         std::string serialized(reinterpret_cast<const char *>(&rule), sizeof(Bitset128));
@@ -262,24 +264,6 @@ private:
                                            set_step_by_world_state_id(world_state_id, step + 1);
                                            return updated; // propagate updated world state
                                        }); });
-    }
-
-    /**
-     * Accepts a uint64_t (max 64 bits set).
-     * Sets the corresponding bits in a std::bitset<128>.
-     * Higher bits are implicitly 0.
-     * */
-    Bitset128 ParseBitSetRuleFromInteger(uint64_t rule_number)
-    {
-        Bitset128 rule;
-        for (int i = 0; i < 64; ++i)
-        {
-            if (rule_number & (1ULL << i))
-            {
-                rule.set(i);
-            }
-        }
-        return rule;
     }
 };
 

@@ -55,6 +55,7 @@ std::tuple<uint64_t, Grid3D> WorldStateContainer::InitWorldStateRandom(size_t x_
 }
 
 // Function to update the world state based on the current state and rule map
+// The grid is toroidal(wraps around in all directions)
 Grid3D WorldStateContainer::UpdateWorldState(const Grid3D &current_world_state, const Bitset128 &rule)
 {
     size_t x_max = current_world_state.size();
@@ -73,6 +74,9 @@ Grid3D WorldStateContainer::UpdateWorldState(const Grid3D &current_world_state, 
             {
                 uint8_t central_bit = current_world_state[x][y][z];
                 // Get the neighbors, handling boundary conditions with modulo
+                // (x + x_max - 1) % x_max safely wraps around to x_max - 1 when x == 0
+                // Below, two binary neighbor values are packed into a 2-bit value, like this:
+                // uint8_t pair = (left << 1) | right;
                 uint8_t x_neighbors = (current_world_state[(x + x_max - 1) % x_max][y][z] << 1) |
                                       current_world_state[(x + 1) % x_max][y][z];
                 uint8_t y_neighbors = (current_world_state[x][(y + y_max - 1) % y_max][z] << 1) |

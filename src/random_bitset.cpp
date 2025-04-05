@@ -70,3 +70,45 @@ Bitset128 generate_random_bitset128()
 
     return random_bitset;
 }
+
+/**
+ * Accepts a uint64_t (max 64 bits set).
+ * Sets the corresponding bits in a std::bitset<128>.
+ * Higher bits are implicitly 0.
+ * */
+Bitset128 ParseBitSetRuleFromInteger(uint64_t rule_number)
+{
+    Bitset128 rule;
+    for (int i = 0; i < 64; ++i)
+    {
+        if (rule_number & (1ULL << i))
+        {
+            rule.set(i);
+        }
+    }
+    return rule;
+}
+
+// See Elementary Cellular Automata: https://content.wolfram.com/sites/13/2019/06/28-2-4.pdf
+Bitset128 build_from_eca(uint8_t eca_rule_number)
+{
+    Bitset128 rule;
+    for (uint8_t i = 0; i < 8; ++i)
+    {
+        uint8_t left = (i >> 2) & 1;
+        uint8_t center = (i >> 1) & 1;
+        uint8_t right = i & 1;
+
+        uint8_t x_neighbors = (left << 1) | right;
+        uint8_t y_neighbors = 0; // y_max = 1 → neighbors wrap to self
+        uint8_t z_neighbors = 0;
+
+        uint8_t index = (center << 6) | (x_neighbors << 4) | (y_neighbors << 2) | z_neighbors;
+
+        if ((eca_rule_number >> i) & 1)
+        {
+            rule.set(index);
+        }
+    }
+    return rule;
+}
