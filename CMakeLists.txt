@@ -26,7 +26,6 @@ if(NOT SRCS)
     message(FATAL_ERROR "No source files found in src directory.")
 endif()
 
-
 # Proto files directory
 set(GENERATED_DIR ${CMAKE_BINARY_DIR}/generated)
 
@@ -64,7 +63,10 @@ endforeach()
 # Add include directories for generated files and Conan packages
 message(STATUS "GENERATED_DIR: ${GENERATED_DIR}")
 message(STATUS "CMAKE_BINARY_DIR: ${CMAKE_BINARY_DIR}")
-include(${CMAKE_BINARY_DIR}/generators/conan_toolchain.cmake)
+
+include(${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
+find_package(tl-expected REQUIRED CONFIG)
+find_package(Catch2 CONFIG REQUIRED)
 
 # Add executable target
 add_executable(CellularAutomata3D ${SRCS})
@@ -72,7 +74,6 @@ add_executable(CellularAutomata3D ${SRCS})
 target_include_directories(CellularAutomata3D PRIVATE ${GENERATED_DIR})
 
 # Link libraries provided by Conan
-find_package(tl-expected REQUIRED CONFIG)
 target_link_libraries(CellularAutomata3D
     PRIVATE
         protobuf::libprotobuf
@@ -88,3 +89,12 @@ target_compile_options(CellularAutomata3D
 
 # Install target
 install(TARGETS CellularAutomata3D DESTINATION bin)
+
+file(GLOB_RECURSE TEST_SRCS ${CMAKE_SOURCE_DIR}/tests/*.cpp)
+if(TEST_SRCS)
+    add_executable(UnitTests ${TEST_SRCS})
+    target_link_libraries(UnitTests PRIVATE Catch2::Catch2WithMain)
+    enable_testing()
+    include(CTest)
+    add_test(NAME AllTests COMMAND UnitTests)
+endif()

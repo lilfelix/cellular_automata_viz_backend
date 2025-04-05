@@ -1,47 +1,49 @@
 {
-    "version": 3,
-    "vendor": {
-        "conan": {}
-    },
+    "version": 4,
     "cmakeMinimumRequired": {
         "major": 3,
-        "minor": 15,
-        "patch": 0
+        "minor": 15
     },
     "configurePresets": [
         {
-            "name": "Debug",
-            "description": "Sets Ninja generator, build and install directory",
+            "name": "release",
+            "displayName": "Release",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "binaryDir": "out/build/Release",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/out/build/${presetName}/generators/conan_toolchain.cmake",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
-            }
+                "CMAKE_BUILD_TYPE": "Release"
+            },
+            "toolchainFile": "out/build/Release/conan_toolchain.cmake"
         },
         {
-            "name": "Release",
-            "description": "Sets Ninja generator, build and install directory",
+            "name": "debug",
+            "displayName": "Debug",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "binaryDir": "out/build/Debug",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/out/build/${presetName}/generators/conan_toolchain.cmake",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
-            }
+                "CMAKE_BUILD_TYPE": "Debug"
+            },
+            "toolchainFile": "out/build/Debug/conan_toolchain.cmake"
         }
     ],
     "buildPresets": [
         {
-            "name": "Release",
-            "configurePreset": "Release",
-            "jobs": 16
+            "name": "build-release",
+            "configurePreset": "release"
         },
         {
-            "name": "Debug",
-            "configurePreset": "Debug",
-            "jobs": 16
+            "name": "build-debug",
+            "configurePreset": "debug"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "test-release",
+            "configurePreset": "release"
+        },
+        {
+            "name": "test-debug",
+            "configurePreset": "debug"
         }
     ]
 }

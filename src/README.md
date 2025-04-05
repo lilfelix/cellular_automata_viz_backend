@@ -56,3 +56,6 @@ protoc -I=$PWD/proto \
 ```
 
 [Version support](https://protobuf.dev/support/version-support/)
+
+### gRPC as external dependency
+Easiest way I've found to install grpc with the grpc_cpp_plugin is to do it from source
