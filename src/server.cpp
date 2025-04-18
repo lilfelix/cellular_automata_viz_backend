@@ -56,9 +56,7 @@ public:
     Status StepWorldStateForward(ServerContext *context, const sim_server::StepRequest *request,
                                  sim_server::WorldStateResponse *reply) override
     {
-        Bitset128 rule;
-        std::memcpy(&rule, request->rule().data(), sizeof(Bitset128));
-
+        Bitset128 rule = ParseBitSetRuleFromString(request->rule());
         const uint64_t world_state_id = request->world_state_id();
 
         auto step_state_result = StepWorldStateForwardInternal(world_state_id, rule);
@@ -67,7 +65,7 @@ public:
             return Status(grpc::StatusCode::INTERNAL, step_state_result.error());
         }
 
-        Grid3D updated_world_state = *step_state_result;
+        BitPackedGrid3D updated_world_state = *step_state_result;
 
         // Save the updated state
         set_world_state_by_id(world_state_id, updated_world_state);
@@ -96,7 +94,6 @@ public:
         reply->set_world_state_id(request->world_state_id());
         reply->set_rule_number(request->rule_number());
 
-        // Bitset128 rule = ParseBitSetRuleFromInteger(request->rule_number());
         Bitset128 rule = build_from_eca(request->rule_number());
 
         // Convert to string format
@@ -123,12 +120,11 @@ public:
 
         ConvertGrid3DToProto(start_state, *reply->mutable_start_state()->mutable_state());
 
-        Bitset128 rule;
-        std::memcpy(&rule, request->step_req().rule().data(), sizeof(Bitset128));
+        Bitset128 rule = ParseBitSetRuleFromString(request->step_req().rule());
         const uint64_t num_steps = request->step_req().num_steps();
         const uint64_t timeout = request->has_timeout() ? request->timeout() : kDefaultSimulationTimeoutSeconds;
 
-        Grid3D end_state;
+        BitPackedGrid3D end_state(x_max, y_max, z_max);
         auto start_time = std::chrono::steady_clock::now();
 
         for (uint64_t i = 0; i < num_steps; ++i)
@@ -171,7 +167,7 @@ private:
     WorldStateContainer states; // Automatically initialized via WorldStateContainer's default constructor
     std::unordered_map<uint64_t, size_t> world_state_id_to_step;
 
-    tl::expected<Grid3D, std::string> get_world_state_by_id(uint64_t world_state_id) const
+    tl::expected<BitPackedGrid3D, std::string> get_world_state_by_id(uint64_t world_state_id) const
     {
         auto it = states.world_states.find(world_state_id);
         if (it == states.world_states.end())
@@ -181,9 +177,9 @@ private:
     }
 
     // Save the current world state after a step.
-    void set_world_state_by_id(const uint64_t world_state_id, const Grid3D &state)
+    void set_world_state_by_id(const uint64_t world_state_id, const BitPackedGrid3D &state)
     {
-        states.world_states[world_state_id] = state;
+        states.world_states.insert_or_assign(world_state_id, std::move(state)); // C++17
     }
 
     // Keep track of the current step
@@ -202,27 +198,32 @@ private:
     }
 
     /**
-     * Serializes a Grid3D into the provided Data protobuf message.
+     * Serializes a BitPackedGrid3D into the provided Data protobuf message.
      */
-    void ConvertGrid3DToProto(const Grid3D &grid, sim_server::Vector3D &vec3d_proto)
+    void ConvertGrid3DToProto(const BitPackedGrid3D &grid, sim_server::Vector3D &vec3d_proto)
     {
-        for (const auto &grid2d : grid)
+        const size_t x_max = grid.x_max;
+        const size_t y_max = grid.y_max;
+        const size_t z_max = grid.z_max;
+
+        for (size_t x = 0; x < x_max; ++x)
         {
-            sim_server::Vector2D *vec2d_proto = vec3d_proto.add_vec2d(); // Add a new Vector2D to the current Vector3D
-            for (const auto &grid1d : grid2d)
+            sim_server::Vector2D *vec2d_proto = vec3d_proto.add_vec2d();
+            for (size_t y = 0; y < y_max; ++y)
             {
-                sim_server::Vector1D *vec1d_proto = vec2d_proto->add_vec1d(); // Add a new Vector1D to the current Vector2D
-                for (const auto &value : grid1d)
+                sim_server::Vector1D *vec1d_proto = vec2d_proto->add_vec1d();
+                for (size_t z = 0; z < z_max; ++z)
                 {
-                    vec1d_proto->add_bit(static_cast<uint32_t>(value)); // Add 0 or 1 as uint32 to the repeated bit field
+                    bool bit = grid.get(x, y, z);
+                    vec1d_proto->add_bit(static_cast<uint32_t>(bit));
                 }
             }
         }
     }
 
-    tl::expected<std::tuple<uint64_t, Grid3D>, std::string> InitWorldStateInternal(const size_t x_max, const size_t y_max, const size_t z_max)
+    tl::expected<std::tuple<uint64_t, BitPackedGrid3D>, std::string> InitWorldStateInternal(const size_t x_max, const size_t y_max, const size_t z_max)
     {
-        tl::expected<std::tuple<uint64_t, Grid3D>, std::string> state = states.InitWorldState(x_max, y_max, z_max);
+        tl::expected<std::tuple<uint64_t, BitPackedGrid3D>, std::string> state = states.InitWorldState1D(x_max, y_max, z_max);
         if (!state)
         {
             return tl::unexpected(state.error());
@@ -250,14 +251,14 @@ private:
         return hash;
     }
 
-    tl::expected<Grid3D, std::string> StepWorldStateForwardInternal(uint64_t world_state_id, Bitset128 rule)
+    tl::expected<BitPackedGrid3D, std::string> StepWorldStateForwardInternal(uint64_t world_state_id, Bitset128 rule)
     {
         return get_world_state_by_id(world_state_id)
-            .transform([&](const Grid3D &current)
+            .transform([&](const BitPackedGrid3D &current)
                        {
-            Grid3D updated = states.UpdateWorldState(current, rule);
+            BitPackedGrid3D updated = states.UpdateWorldState(current, rule);
             return updated; })
-            .and_then([&](Grid3D updated) -> tl::expected<Grid3D, std::string>
+            .and_then([&](BitPackedGrid3D updated) -> tl::expected<BitPackedGrid3D, std::string>
                       { return get_step_by_world_state_id(world_state_id)
                             .transform([&](size_t step)
                                        {
