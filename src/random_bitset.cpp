@@ -89,6 +89,28 @@ Bitset128 ParseBitSetRuleFromInteger(uint64_t rule_number)
     return rule;
 }
 
+Bitset128 ParseBitSetRuleFromString(const std::string &rule_str)
+{
+    Bitset128 rule;
+
+    if (rule_str.size() != 16)
+    {
+        std::cerr << "Expected 16 bytes for 128-bit rule, got " << rule_str.size() << std::endl;
+        return rule;
+    }
+
+    for (size_t bit = 0; bit < 128; ++bit)
+    {
+        size_t byte_idx = bit / 8;
+        uint8_t byte = static_cast<uint8_t>(rule_str[byte_idx]);
+        if (byte & (1 << (bit % 8)))
+        {
+            rule.set(bit);
+        }
+    }
+    return rule;
+}
+
 // See Elementary Cellular Automata: https://content.wolfram.com/sites/13/2019/06/28-2-4.pdf
 Bitset128 build_from_eca(uint8_t eca_rule_number)
 {

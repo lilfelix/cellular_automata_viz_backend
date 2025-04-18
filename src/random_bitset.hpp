@@ -8,6 +8,12 @@
 
 using Bitset128 = std::bitset<128>;
 
+enum RuleMode
+{
+    RULE_1D_ECA,
+    RULE_3D
+};
+
 // Function declarations
 Bitset128 generate_random_bitset128();
 
@@ -23,6 +29,12 @@ bool does_cell_live(const Bitset128 &rule, uint8_t central_bit, uint8_t x, uint8
  * Higher bits are implicitly 0.
  * */
 Bitset128 ParseBitSetRuleFromInteger(uint64_t rule_number);
+
+/**
+ * Decodes the rule bit-by-bit from the serialized string
+ * Works regardless of platform endianness or bitset<> layout
+ */
+Bitset128 ParseBitSetRuleFromString(const std::string &rule_str);
 
 // See Elementary Cellular Automata: https://content.wolfram.com/sites/13/2019/06/28-2-4.pdf
 Bitset128 build_from_eca(uint8_t eca_rule_number);
